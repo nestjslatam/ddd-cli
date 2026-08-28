@@ -4,6 +4,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { Fixture } from './fixture';
+import { runMcpSuite } from './mcp-suite';
 import { SUITES } from './scenarios';
 import { Expectation, Result, Scenario } from './types';
 
@@ -171,6 +172,25 @@ async function main(): Promise<void> {
             process.stdout.write(`          ${line}\n`);
           }
         }
+      }
+    }
+
+    // The MCP surface is driven over stdio rather than by argv, so it gets
+    // its own pass rather than being forced into the scenario shape.
+    process.stdout.write(`\n  mcp\n`);
+    fixture.reset();
+    fixture.write(
+      'sample.ts',
+      'export class Sample {\n  ok(): boolean {\n    return true;\n  }\n}\n',
+    );
+
+    for (const result of await runMcpSuite(CLI, fixture.root)) {
+      results.push(result);
+      process.stdout.write(
+        `    ${result.outcome === 'fail' ? 'FAIL' : 'pass'}  ${result.scenario}\n`,
+      );
+      if (result.reason) {
+        process.stdout.write(`          ${result.reason}\n`);
       }
     }
   } finally {
