@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Lint, type-check and test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The package declares engines >=20.11; test the supported range.
+        node-version: ['20.x', '22.x']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  package:
+    name: Package installs and runs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the publishable package
+        run: npm run build:lib
+
+      - name: Install the tarball into a clean project and run it
+        # Building is not the same as being installable. This is the check
+        # that would have caught ddd-valueobjects shipping a `main` pointing
+        # at a file that did not exist.
+        run: |
+          PACK_DIR="$(mktemp -d)"
+          (cd dist-package && npm pack --pack-destination "$PACK_DIR")
+          TARBALL="$(find "$PACK_DIR" -name '*.tgz' | head -1)"
+
+          SMOKE="$(mktemp -d)"
+          cd "$SMOKE"
+          npm init -y >/dev/null
+          npm install "$TARBALL" @nestjslatam/ddd-lib@^2.1.2
+
+          ./node_modules/.bin/ddd --help
+          ./node_modules/.bin/ddd list --role extend
+          ./node_modules/.bin/ddd explain AbstractRuleValidator --raw
