@@ -66,7 +66,7 @@ ddd new aggregate Order
 ddd new enum OrderStatus
 ```
 
-No model is involved. These have one correct shape, taken from the library's own code, and every template carries the idiom `ddd validate` checks for: a factory that checks `isValid`, an `addValidators()` that chains to `super`, events that carry primitives only.
+No model is involved. These have one correct shape, taken from the library's own code, and every template passes `ddd validate`: a factory that checks `isValid` where the stereotype has one, an `addValidators()` that chains to `super` wherever the base actually registers rules, and events that carry primitives only.
 
 Subclassing works against whatever the installed library reports as a base:
 
@@ -118,7 +118,7 @@ shared/valueobjects/order-total.ts                               extends NumberV
 shared/valueobjects/validators/order-total-rules.validator.ts    extends AbstractRuleValidator
 ```
 
-plus an `index.ts` barrel in each of those five folders, matching how the reference project imports. As with `ddd new`, the full file list is previewed and confirmed (`Write these files? (y/N)`) before anything lands, and existing files are reported as `exists` and left untouched unless you pass `--force`.
+plus an `index.ts` barrel in five of them -- the aggregate folder, its `events/` and `validators/`, and `shared/valueobjects/` and its `validators/`. The module root, the use-case folder and `infrastructure/repositories/` get none. As with `ddd new`, the full file list is previewed and confirmed (`Write these files? (y/N)`) before anything lands, and existing files are reported as `exists` and left untouched unless you pass `--force`.
 
 | Flag | Effect |
 |---|---|
