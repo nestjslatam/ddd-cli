@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
-import { LlmProvider, StructuredRequest } from '../llm-provider.port';
+import {
+  LlmProvider,
+  StructuredRequest,
+  TextRequest,
+} from '../llm-provider.port';
 
 /**
  * OpenAI adapter.
@@ -45,6 +49,23 @@ export class OpenAiProvider extends LlmProvider {
     }
 
     return JSON.parse(text);
+  }
+
+  async generateText(request: TextRequest): Promise<string> {
+    const completion = await this.client.chat.completions.create({
+      model: this.model,
+      messages: [
+        { role: 'system', content: request.system },
+        { role: 'user', content: request.prompt },
+      ],
+    });
+
+    const text = completion.choices[0]?.message?.content;
+    if (!text?.trim()) {
+      throw new Error(`${this.model} returned an empty response.`);
+    }
+
+    return text.trim();
   }
 }
 
