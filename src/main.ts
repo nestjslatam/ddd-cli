@@ -28,6 +28,17 @@ const logger: LogLevel[] = process.env.DDD_CLI_DEBUG
  * because an error can arrive before the Nest context exists.
  */
 function reportFailure(error: Error): void {
+  // Commander signals --help and --version by throwing. Those are successful
+  // outcomes, not failures, and reporting them as errors would make the CLI
+  // look broken every time someone asks it for help.
+  const code = (error as { code?: string }).code ?? '';
+  if (
+    code.startsWith('commander.help') ||
+    code.startsWith('commander.version')
+  ) {
+    return;
+  }
+
   const depth = detectDepth(process.env, Boolean(process.stderr.isTTY));
   const label = paint('danger', 'Error', depth);
 
