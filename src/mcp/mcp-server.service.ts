@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -21,8 +22,27 @@ import {
 } from '../scaffold/stereotype.renderer';
 import { ValidateService } from '../validate/validate.service';
 
-const NAME = '@nestjslatam/ddd-cli';
-const VERSION = '0.1.0';
+/**
+ * Identity reported to MCP clients, read from the manifest rather than
+ * duplicated here: a hardcoded version silently drifts from the published one
+ * at the first release nobody remembers to update it in two places.
+ */
+function packageIdentity(): { name: string; version: string } {
+  // dist/mcp/ -> package root, and src/mcp/ -> repo root. Both resolve.
+  const manifest = join(__dirname, '..', '..', 'package.json');
+  try {
+    const parsed = JSON.parse(readFileSync(manifest, 'utf8')) as {
+      name?: string;
+      version?: string;
+    };
+    return {
+      name: parsed.name ?? '@nestjslatam/ddd-cli',
+      version: parsed.version ?? '0.0.0',
+    };
+  } catch {
+    return { name: '@nestjslatam/ddd-cli', version: '0.0.0' };
+  }
+}
 
 /**
  * Exposes the CLI's deterministic capabilities as MCP tools.
@@ -49,7 +69,7 @@ export class McpServerService {
   ) {}
 
   async serve(): Promise<void> {
-    const server = new McpServer({ name: NAME, version: VERSION });
+    const server = new McpServer(packageIdentity());
 
     this.registerList(server);
     this.registerDescribe(server);
