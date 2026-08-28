@@ -14,6 +14,11 @@ export interface StructuredRequest {
   schemaName: string;
 }
 
+export interface TextRequest {
+  system: string;
+  prompt: string;
+}
+
 export abstract class LlmProvider {
   /** Provider id used by `--provider` and by config. */
   abstract readonly id: string;
@@ -30,6 +35,12 @@ export abstract class LlmProvider {
    * silently producing something the renderers cannot use.
    */
   abstract generateStructured(request: StructuredRequest): Promise<unknown>;
+
+  /**
+   * Returns prose. Used for explanation, where a schema would only get in the
+   * way of a readable answer.
+   */
+  abstract generateText(request: TextRequest): Promise<string>;
 }
 
 /** DI token. `LlmProvider` is abstract, so it doubles as the token. */

@@ -1,6 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Injectable } from '@nestjs/common';
-import { LlmProvider, StructuredRequest } from '../llm-provider.port';
+import {
+  LlmProvider,
+  StructuredRequest,
+  TextRequest,
+} from '../llm-provider.port';
 
 /**
  * Claude adapter.
@@ -62,5 +66,26 @@ export class AnthropicProvider extends LlmProvider {
     }
 
     return JSON.parse(text);
+  }
+
+  async generateText(request: TextRequest): Promise<string> {
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 16000,
+      thinking: { type: 'adaptive' },
+      output_config: { effort: 'medium' },
+      system: request.system,
+      messages: [{ role: 'user', content: request.prompt }],
+    });
+
+    if (response.stop_reason === 'refusal') {
+      throw new Error('Claude declined this request.');
+    }
+
+    return response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('')
+      .trim();
   }
 }

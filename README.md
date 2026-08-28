@@ -9,6 +9,101 @@ ddd generate:aggregate "An order has a customer name and a total. \
   The total must be positive and cannot exceed 1,000,000."
 ```
 
+## Look and feel
+
+Output follows the [nestjslatam.dev](https://nestjslatam.dev/) identity. The palette is the site's own design tokens, read from its stylesheet rather than approximated:
+
+| Token | Colour | Used for |
+|---|---|---|
+| `--accent` | `#1e73be` | symbol names, commands, emphasis |
+| `--contrast-2` | `#575760` | secondary text, provenance, hints |
+| `--contrast-3` | `#b2b2be` | rules, dividers, the quietest detail |
+| NestJS red | `#e0234e` | errors |
+
+Success and warning (`#00d084`, `#fcb900`) come from the preset palette the site's theme ships; the brand defines no green or amber.
+
+Primary text is deliberately left uncoloured. A terminal already has a foreground that suits its background, and `--contrast` (`#222222`) would be unreadable on a dark theme.
+
+Colour degrades by terminal capability — 24-bit where `COLORTERM` advertises it, 256 colours, then the basic eight. `NO_COLOR`, `TERM=dumb` and piped output all produce plain text, so redirecting to a file stays clean.
+
+## Understanding the library
+
+```bash
+ddd list                              # every stereotype, grouped, with its role
+ddd list --family validation          # just the validators and business rules
+ddd list --role extend                # only the base classes you subclass
+ddd explain AbstractRuleValidator     # what it is, the contract, an example
+ddd explain BrokenRulesManager --raw  # the declaration only, no model call
+```
+
+`list` needs no model at all. It reads the `.d.ts` files of the `@nestjslatam/ddd-lib` **installed in your project**, with the TypeScript compiler, and reports what is actually there — so it stays correct across library versions without the CLI being updated.
+
+The output turns on a distinction that is most of understanding this library's design:
+
+| Role | Meaning |
+|---|---|
+| `extend` | A base class you subclass. `ddd list` shows the abstract members you must implement. |
+| `implement` | An interface you satisfy. |
+| `compose` | A collaborator the aggregate **delegates to** rather than inheriting from — `BrokenRulesManager`, `ValidatorRuleManager`, `TrackingStateManager`. This is the decoupling. |
+| `use` | Call it directly. |
+
+`explain` adds a model to that, but the model only ever sees the real declaration: the signature, the abstract members, the JSDoc as published. It is told to say so when the declaration does not answer something rather than fill the gap, so it cannot describe an API that does not exist. The facts are printed before the explanation so you can tell them apart, and `--raw` skips the model entirely.
+
+Aliased exports are resolved: `AbstractDomainEvent` is reported as an alias of `DomainEvent`, because they are the same class.
+
+## Creating stereotypes
+
+```bash
+ddd new value-object OrderTotal --kind number
+ddd new validator OrderTotalRules --for OrderTotal
+ddd new event OrderPlaced          # OrderPlacedEvent, with fromJSON for replay
+ddd new exception OrderClosed      # OrderClosedException
+ddd new aggregate Order
+ddd new enum OrderStatus
+```
+
+No model is involved. These have one correct shape, taken from how the library's own code is written, and a model would only add variance where none is wanted — `generate:aggregate` is where it earns its place, deciding *what* to build rather than how to spell it.
+
+Every template carries the idiom `ddd validate` checks for: a factory that checks `isValid`, an `addValidators()` that chains to `super`, events that carry primitives only.
+
+## Extending the library
+
+```bash
+ddd extend --list                                  # what can be subclassed
+ddd extend AbstractRuleValidator OrderTotalRules
+ddd extend DddValueObject Coordinates
+```
+
+The contract comes from the installed declarations, not a table in this CLI: whatever the introspector reports as abstract becomes a stub. That is what makes it work for a base this command has never heard of, and keeps it correct when the library adds one.
+
+Asking to extend something that is not a base explains why, rather than refusing:
+
+```
+BrokenRulesManager is not a base class.
+
+  BrokenRulesManager is a collaborator: an aggregate or value object holds one
+  and delegates to it, rather than subclassing it.
+```
+
+## Auditing your code
+
+```bash
+ddd validate            # the whole source root
+ddd validate src/orders # or one path
+ddd validate --strict   # fail on warnings too
+```
+
+Four rules, each one a mistake this library makes easy and silent:
+
+| Rule | Why it matters |
+|---|---|
+| `no-subclass-state-in-add-validators` | The base constructor calls `addValidators()` **before** the subclass constructor body runs. Reading a field assigned there throws on every construction — this is exactly how `NumberValueObject` shipped broken through two releases. |
+| `super-add-validators` | `StringValueObject` and `NumberValueObject` register real validators in `addValidators()`. An override that does not chain drops them, and invalid values pass with no error. |
+| `factory-checks-validity` | Validation collects broken rules rather than throwing, so a `create()` that does not check `isValid` can hand back an object that failed its own invariants. |
+| `handler-commits-events` | An aggregate collects its domain events; only `mergeObjectContext(...).commit()` dispatches them. Without it the command succeeds and every downstream handler is silently skipped. |
+
+Exits non-zero when errors are found, so it can gate a build.
+
 ## How it works
 
 The model never writes TypeScript.
