@@ -41,15 +41,18 @@ const walk = (node: ts.Node, visit: (n: ts.Node) => void): void => {
 /**
  * Bases whose own addValidators() registers real validators.
  *
- * Verified against the library source: DddValueObject.addValidators() and
- * DddAggregateRoot's are empty hooks, so a subclass of those loses nothing by
- * not chaining. These three do register rules -- NumberNotNullValidator,
- * NumberPositiveValidator, StringNotNullOrEmptyValidator -- and skipping super
- * silently drops them. Narrowing to these keeps the rule quiet where it would
- * only be noise.
+ * Counted at runtime against the installed library rather than assumed:
+ * StringValueObject registers 1 (StringNotNullOrEmptyValidator),
+ * NumberValueObject registers 2 (NumberNotNullValidator and
+ * NumberPositiveValidator), and everything else registers 0.
+ *
+ * IdValueObject is deliberately absent. Its addValidators() is a bare
+ * `super.addValidators()` into DddValueObject's empty hook, so a subclass
+ * that skips the chain loses nothing -- flagging it produced a false positive
+ * that failed builds while telling the developer, untruthfully, that "the
+ * base adds its own rules there".
  */
-const BASES_WITH_VALIDATORS =
-  /^(StringValueObject|NumberValueObject|IdValueObject)$/;
+const BASES_WITH_VALIDATORS = /^(StringValueObject|NumberValueObject)$/;
 
 /**
  * addValidators() must call super when the base registers validators.
