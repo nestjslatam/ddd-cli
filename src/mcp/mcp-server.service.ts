@@ -164,7 +164,10 @@ export class McpServerService {
           extends: found.extends,
           implements: found.implements,
           aliasOf: found.aliasOf,
-          typeParameters: found.typeParameters,
+          // Strings, deliberately: the introspector models parameters as
+          // objects now, but this is a published tool contract and clients
+          // read it as a list of declarations.
+          typeParameters: found.typeParameters.map((p) => p.text),
           documentation: found.doc,
           mustImplement: found.abstractMembers.map((m) => ({
             name: m.name,

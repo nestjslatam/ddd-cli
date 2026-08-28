@@ -25,7 +25,24 @@ export interface MemberInfo {
   signature: string;
   isStatic: boolean;
   isAbstract: boolean;
+  /**
+   * Recorded for the constructor above all: a protected one means the class
+   * cannot be instantiated directly, which is the library's way of saying
+   * "subclass this".
+   */
+  isProtected: boolean;
   doc?: string;
+}
+
+/** One generic parameter of a declaration. */
+export interface TypeParameterInfo {
+  name: string;
+  /** The `extends` clause, when the parameter has one. */
+  constraint?: string;
+  /** True when the parameter has a default and may be omitted. */
+  hasDefault: boolean;
+  /** The parameter exactly as written, for display. */
+  text: string;
 }
 
 export interface StereotypeSymbol {
@@ -35,7 +52,7 @@ export interface StereotypeSymbol {
   /** Base class, when the declaration extends one. */
   extends?: string;
   implements: string[];
-  typeParameters: string[];
+  typeParameters: TypeParameterInfo[];
   /** What you must implement to extend this. Empty for non-abstract symbols. */
   abstractMembers: MemberInfo[];
   members: MemberInfo[];

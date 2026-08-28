@@ -66,8 +66,51 @@ describe('LibraryIntrospectorService', () => {
       expect(alias.family).toBe('Domain Events');
     });
 
+    it('treats a protected constructor as a base you extend', () => {
+      // StringValueObject, NumberValueObject and IdValueObject are concrete
+      // with no abstract members, so the name/abstract heuristics classified
+      // them 'use' -- and `ddd extend StringValueObject` was refused while the
+      // CLI's own templates emitted `extends StringValueObject`.
+      for (const name of [
+        'StringValueObject',
+        'NumberValueObject',
+        'IdValueObject',
+      ]) {
+        expect(service.find(name)!.role).toBe('extend');
+      }
+    });
+
+    it('does not mistake a collaborator for a base', () => {
+      // The protected-constructor signal must not widen 'extend' to things
+      // that are meant to be composed.
+      expect(service.find('BrokenRulesManager')!.role).toBe('compose');
+      expect(service.find('ValidatorRuleManager')!.role).toBe('compose');
+    });
+
     it('treats interfaces as things you implement', () => {
       expect(service.find('IRuleValidator')!.role).toBe('implement');
+    });
+  });
+
+  describe('type parameters', () => {
+    it('records the constraint and default of each parameter', () => {
+      // DddAggregateRoot<TEntity, TProps, TState extends object = object>
+      const parameters = service.find('DddAggregateRoot')!.typeParameters;
+
+      expect(parameters.map((p) => p.name)).toEqual([
+        'TEntity',
+        'TProps',
+        'TState',
+      ]);
+      expect(parameters[2].constraint).toBe('object');
+      expect(parameters[2].hasDefault).toBe(true);
+      expect(parameters[0].hasDefault).toBe(false);
+    });
+
+    it('keeps the declaration text for display', () => {
+      expect(
+        service.find('DddAggregateRoot')!.typeParameters[2].text,
+      ).toContain('extends object');
     });
   });
 

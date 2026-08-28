@@ -68,7 +68,18 @@ export class ValidateService {
 
       for (const entry of entries) {
         const full = join(dir, entry);
-        if (statSync(full).isDirectory()) {
+
+        // statSync follows symlinks, so one dangling link anywhere under the
+        // tree threw ENOENT out of the walk and killed the entire audit with
+        // a message that read like a CLI bug. Skip what cannot be stat'd.
+        let stats;
+        try {
+          stats = statSync(full);
+        } catch {
+          continue;
+        }
+
+        if (stats.isDirectory()) {
           if (!SKIP_DIRECTORIES.has(entry)) {
             walk(full);
           }

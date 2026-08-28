@@ -184,6 +184,8 @@ export const factoryChecksValidity: IdiomRule = ({ source, file }) => {
       return;
     }
 
+    const isAggregate = isClassExtending(node, /AggregateRoot/);
+
     for (const member of node.members) {
       if (
         !ts.isMethodDeclaration(member) ||
@@ -197,7 +199,50 @@ export const factoryChecksValidity: IdiomRule = ({ source, file }) => {
       }
 
       const body = member.body.getText();
-      if (body.includes('isValid') || body.includes('brokenRules')) {
+      const owner = node.name?.getText() ?? 'This class';
+
+      if (body.includes('brokenRules')) {
+        continue;
+      }
+
+      // The two bases disagree on the shape of the same member:
+      // DddAggregateRoot declares `isValid(): boolean`, DddValueObject
+      // declares `get isValid(): boolean`. Reading the method as a property
+      // tests a function -- always truthy -- so the guard never fires. A
+      // substring check for "isValid" passes both forms, which is exactly how
+      // this shipped in generated aggregates unnoticed.
+      const callsIt = /\bisValid\s*\(/.test(body);
+      const readsIt = /\bisValid\b/.test(body) && !callsIt;
+
+      if (isAggregate && readsIt) {
+        findings.push({
+          rule: 'factory-checks-validity',
+          severity: 'error',
+          file,
+          line: lineOf(source, member),
+          message: `${owner}.create() reads isValid as a property, but it is a method on DddAggregateRoot`,
+          detail:
+            'The expression tests a function rather than a boolean, so it is ' +
+            'always truthy and the guard never fires. Call it: isValid().',
+        });
+        continue;
+      }
+
+      if (!isAggregate && callsIt) {
+        findings.push({
+          rule: 'factory-checks-validity',
+          severity: 'error',
+          file,
+          line: lineOf(source, member),
+          message: `${owner}.create() calls isValid(), but it is a getter on DddValueObject`,
+          detail:
+            'Calling a boolean getter throws "isValid is not a function" at ' +
+            'runtime. Read it as a property: isValid.',
+        });
+        continue;
+      }
+
+      if (callsIt || readsIt) {
         continue;
       }
 
@@ -206,7 +251,7 @@ export const factoryChecksValidity: IdiomRule = ({ source, file }) => {
         severity: 'warning',
         file,
         line: lineOf(source, member),
-        message: `${node.name?.getText() ?? 'This class'}.create() never checks isValid`,
+        message: `${owner}.create() never checks isValid`,
         detail:
           'Validation collects broken rules instead of throwing, so this ' +
           'factory can return an object that failed its own invariants.',

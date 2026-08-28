@@ -72,7 +72,7 @@ ${createParams}
 ${createAssignments}
     });
 
-    if (!${instance}.isValid) {
+    if (!${instance}.isValid()) {
       const errors = ${instance}.brokenRules.getBrokenRules();
       throw new Error(
         \`Cannot create ${spec.name}: \${errors
