@@ -27,6 +27,15 @@ describe('stereotype templates', () => {
     expect(file.contents).toContain('static fromJSON');
   });
 
+  it('does not redeclare aggregateId on an event', () => {
+    // The base exposes it as an accessor derived from the metadata; declaring
+    // it as a constructor property is a type error (TS2610). The unit tests
+    // missed this because they only read the string -- the robot caught it by
+    // compiling the result.
+    const [file] = renderStereotype({ kind: 'event', name: 'OrderPlaced' });
+    expect(file.contents).not.toContain('readonly aggregateId');
+  });
+
   it('suffixes an exception name when the caller omits it', () => {
     const [file] = renderStereotype({ kind: 'exception', name: 'OrderClosed' });
     expect(file.contents).toContain('class OrderClosedException');

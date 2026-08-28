@@ -1,0 +1,54 @@
+name: Acceptance robot
+
+# Drives the built CLI as a subprocess against a real NestJS project, the way
+# a user would. The unit suite checks the pieces; this checks the product --
+# and it has already caught a template that passed its unit test and then
+# failed to compile.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      lib_version:
+        description: 'Version of @nestjslatam/ddd-lib to test against'
+        required: false
+        default: '2.1.2'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  robot:
+    name: Acceptance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run the robot
+        # Live-model scenarios are skipped without credentials, and reported
+        # as skipped rather than passing.
+        run: npm run robot:json
+        env:
+          ROBOT_LIB_VERSION: ${{ inputs.lib_version || '2.1.2' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-report
+          path: robot-report.json
+          if-no-files-found: warn

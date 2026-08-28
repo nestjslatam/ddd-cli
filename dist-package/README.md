@@ -173,6 +173,28 @@ Register the emitted module in your application module and it runs.
 
 Node 20.11 or later, and a project that depends on `@nestjslatam/ddd-lib`. The CLI walks up from the working directory to find `package.json`, and honours `sourceRoot` from `nest-cli.json`.
 
+## The acceptance robot
+
+```bash
+npm run robot
+```
+
+The unit suite checks the pieces; the robot checks the product. It builds a throwaway NestJS project with a real `@nestjslatam/ddd-lib` installed, then drives the **built binary as a subprocess** — the way a user would — across 41 scenarios covering every command, every flag, and the error paths.
+
+For scaffolding scenarios it does not merely check the output text: it runs `tsc` over what was written. That is what makes it worth having. The event template passed its unit test and then failed to compile, because `DomainEvent` already exposes `aggregateId` as an accessor and the template redeclared it. Only compiling the result surfaced that.
+
+Scenarios needing a live model are **skipped and reported as skipped**, never as passing, when no credentials are present:
+
+```
+  39 passed, 0 failed, 2 skipped of 41
+
+  Skipped (not tested, not passing):
+    explain · explains against a live model — needs model credentials
+    generate:aggregate · models an aggregate against a live model — needs model credentials
+```
+
+It exits non-zero on failure, so CI can gate on it. `ROBOT_JSON=report.json` writes a machine-readable report; `ROBOT_LIB_VERSION` pins which library version to test against, so a new release can be checked before it ships.
+
 ## Development
 
 ```bash

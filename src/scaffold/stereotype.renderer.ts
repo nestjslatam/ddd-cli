@@ -150,9 +150,11 @@ function renderEvent(request: NewRequest): Artifact {
  */
 export class ${name} extends AbstractDomainEvent {
   constructor(
-    // Events carry primitives only: they are serialised, and a value object
-    // would not survive the round trip.
-    readonly aggregateId: string,
+    // Carry the domain payload only, and only primitives: events are
+    // serialised, and a value object would not survive the round trip.
+    // Do NOT declare aggregateId here -- the base already exposes it as an
+    // accessor derived from the metadata, and redeclaring it is a type error.
+    readonly occurredFor: string,
     metadata: EventMetadata,
   ) {
     super(metadata);
@@ -163,7 +165,7 @@ export class ${name} extends AbstractDomainEvent {
     const metadata = AbstractDomainEvent.extractMetadata(json);
     const eventData = AbstractDomainEvent.extractEventData(json);
 
-    return new ${name}(eventData.aggregateId as string, metadata);
+    return new ${name}(eventData.occurredFor as string, metadata);
   }
 }`,
   );
