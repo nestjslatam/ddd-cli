@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.0 (2026-08-28)
+
+### Use it from the agent you already have
+
+**`ddd mcp`** runs the CLI as an MCP server, so Claude Code, Codex, Cursor or anything else speaking MCP can drive it with **its own model — no API key**.
+
+```bash
+claude mcp add ddd -- npx -y @nestjslatam/ddd-cli mcp
+```
+
+The previous design had the CLI open its own connection to a model. If you are already working inside an agent, that agent has a model and credentials; provisioning a second set for the CLI is redundant. The division of labour is now explicit: the agent supplies the judgement — what to model, how to explain it — and the CLI supplies what a model is bad at, namely reading the installed declarations exactly, rendering deterministically, and auditing against the idiom.
+
+Seven tools: `ddd_list`, `ddd_describe`, `ddd_new`, `ddd_extend`, `ddd_validate`, `ddd_aggregate_schema` and `ddd_render_aggregate`.
+
+`ddd_describe` returns **facts rather than prose** on purpose — the agent writes the explanation, which is what it is for. `ddd_aggregate_schema` and `ddd_render_aggregate` make the split explicit: the agent produces a specification, the CLI renders it, and a specification that fails the schema comes back with per-field issues so the agent can correct itself without a human in the loop.
+
+Nothing is written to disk unless a call passes `write: true`, and even then existing files are never overwritten: an agent acting unattended must not clobber hand-edited domain code.
+
+### Unchanged
+
+The direct-API providers remain for CI and standalone use. They were never required by more than two of the seven commands — `list`, `new`, `extend`, `validate` and `explain --raw` have never touched a model.
+
+### Verification
+
+The acceptance robot gained 12 scenarios driving the MCP server over stdio the way a client would, including an assertion that nothing outside the protocol reaches stdout — MCP is JSON-RPC on that stream, and one stray log line makes a client drop the connection. 51 passing of 53.
+
 ## 0.1.0 (2026-08-28)
 
 First release. Published as `@nestjslatam/ddd-cli`.

@@ -1,6 +1,6 @@
 {
   "name": "@nestjslatam/ddd-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "LLM-assisted generator for Domain-Driven Design artifacts built on @nestjslatam/ddd-lib",
   "author": {
     "name": "Alberto Arroyo Raygada",
@@ -18,7 +18,10 @@
     "codegen",
     "llm",
     "claude",
-    "aggregate"
+    "aggregate",
+    "mcp",
+    "model-context-protocol",
+    "claude-code"
   ],
   "repository": {
     "type": "git",
