@@ -222,7 +222,10 @@ export class ${request.name} extends DddAggregateRoot<
   static create(props: I${request.name}Props): ${request.name} {
     const instance = new ${request.name}(props);
 
-    if (!instance.isValid) {
+    // isValid is a method on DddAggregateRoot and a getter on DddValueObject.
+    // Reading it as a property here would test a function -- always truthy --
+    // and the guard would never fire.
+    if (!instance.isValid()) {
       const errors = instance.brokenRules.getBrokenRules();
       throw new Error(
         \`Cannot create ${request.name}: \${errors

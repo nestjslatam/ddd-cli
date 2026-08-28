@@ -8,6 +8,7 @@ import {
   StereotypeFamily,
   StereotypeRole,
   StereotypeSymbol,
+  TypeParameterInfo,
 } from './stereotype.model';
 
 const PACKAGE = '@nestjslatam/ddd-lib';
@@ -155,9 +156,27 @@ export class LibraryIntrospectorService {
     const found: string[] = [];
 
     const walk = (dir: string): void => {
-      for (const entry of readdirSync(dir)) {
+      // Neither call was guarded here. statSync follows symlinks, so one
+      // dangling link under the installed package threw ENOENT out of the
+      // walk and took every command that reads the library with it.
+      let entries: string[];
+      try {
+        entries = readdirSync(dir);
+      } catch {
+        return;
+      }
+
+      for (const entry of entries) {
         const full = join(dir, entry);
-        if (statSync(full).isDirectory()) {
+
+        let stats;
+        try {
+          stats = statSync(full);
+        } catch {
+          continue;
+        }
+
+        if (stats.isDirectory()) {
           if (entry !== 'node_modules') {
             walk(full);
           }
@@ -270,7 +289,9 @@ export class LibraryIntrospectorService {
       isAbstract,
       extends: extendsName,
       implements: implementsNames,
-      typeParameters: (node.typeParameters ?? []).map((p) => p.getText(source)),
+      typeParameters: (node.typeParameters ?? []).map((parameter) =>
+        this.readTypeParameter(parameter, source),
+      ),
       abstractMembers: members.filter((m) => m.isAbstract),
       members: members.filter((m) => !m.isAbstract),
       doc: this.readDoc(node, source),
@@ -298,7 +319,20 @@ export class LibraryIntrospectorService {
       signature: member.getText(source).replace(/\s+/g, ' ').trim(),
       isStatic: this.hasModifier(member, ts.SyntaxKind.StaticKeyword),
       isAbstract: this.hasModifier(member, ts.SyntaxKind.AbstractKeyword),
+      isProtected: this.hasModifier(member, ts.SyntaxKind.ProtectedKeyword),
       doc: this.readDoc(member, source),
+    };
+  }
+
+  private readTypeParameter(
+    parameter: ts.TypeParameterDeclaration,
+    source: ts.SourceFile,
+  ): TypeParameterInfo {
+    return {
+      name: parameter.name.text,
+      constraint: parameter.constraint?.getText(source),
+      hasDefault: Boolean(parameter.default),
+      text: parameter.getText(source),
     };
   }
 
@@ -393,10 +427,22 @@ export class LibraryIntrospectorService {
     members: MemberInfo[],
   ): StereotypeRole {
     // Some bases are abstract by intent and convention without carrying the
-    // keyword in their emitted declaration; the name is the reliable signal.
+    // keyword in their emitted declaration; the name is one signal.
+    //
+    // A protected constructor is the other, and the stronger one: the class
+    // cannot be instantiated directly, so subclassing is the only way to use
+    // it. Without this, StringValueObject, NumberValueObject and
+    // IdValueObject -- concrete, with no abstract members -- classified as
+    // 'use', so `ddd extend StringValueObject` was refused while the CLI's
+    // own templates emitted `extends StringValueObject`.
+    const hasProtectedConstructor = members.some(
+      (member) => member.name === 'constructor' && member.isProtected,
+    );
+
     if (
       isAbstract ||
       members.some((m) => m.isAbstract) ||
+      hasProtectedConstructor ||
       /^Abstract/.test(name)
     ) {
       return 'extend';

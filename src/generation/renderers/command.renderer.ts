@@ -51,7 +51,7 @@ ${ctorParams || '    // This command carries no payload.'}
   const body =
     command.returns === 'string'
       ? buildCreateBody(aggregate, instance)
-      : buildMutateBody(instance);
+      : buildMutateBody(command, instance);
 
   // A create handler constructs value objects from the command's primitives,
   // so it needs them in scope. Missing this import is invisible until the
@@ -138,11 +138,26 @@ ${args}
     await this.repository.save(${instance});`;
 }
 
-function buildMutateBody(instance: string): string {
-  return `    const ${instance} = await this.repository.findById(id);
+function buildMutateBody(command: CommandSpec, instance: string): string {
+  // The aggregate is looked up by an id the command carries. Only properties
+  // destructured from the command are in scope, so the identifier has to come
+  // from the spec -- emitting a bare `id` produced a handler that referenced
+  // an unbound name and failed to compile.
+  const idProperty = command.properties.find((property) =>
+    /^(id|.*Id)$/.test(property.name),
+  )?.name;
+
+  if (!idProperty) {
+    return `    // TODO: this command carries no aggregate id, so there is nothing to
+    // load. Add an id property to the command, or write the behaviour this
+    // command represents against whatever it does carry.
+    throw new Error('${command.name} is not implemented yet.');`;
+  }
+
+  return `    const ${instance} = await this.repository.findById(${idProperty});
 
     if (!${instance}) {
-      throw new Error(\`No aggregate found for id \${id}\`);
+      throw new Error(\`No ${instance} found for id \${${idProperty}}\`);
     }
 
     // TODO: invoke the behaviour this command represents on the aggregate.

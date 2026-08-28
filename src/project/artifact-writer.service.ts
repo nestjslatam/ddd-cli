@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { Injectable } from '@nestjs/common';
 
@@ -30,8 +30,23 @@ export class ArtifactWriterService {
   plan(artifacts: Artifact[], sourceRoot: string): WritePlan {
     const create: Artifact[] = [];
     const overwrite: Artifact[] = [];
+    const root = resolve(sourceRoot);
 
     for (const item of artifacts) {
+      // Every write goes through plan(), so containment is enforced once,
+      // here. It matters most over MCP: ddd_extend takes `directory`
+      // straight from the calling agent and writes with no preview and no
+      // confirmation, and `..` segments escaped the project entirely.
+      const destination = resolve(root, item.path);
+      if (
+        destination !== root &&
+        relative(root, destination).startsWith('..')
+      ) {
+        throw new Error(
+          `Refusing to write outside the source root: ${item.path}`,
+        );
+      }
+
       (existsSync(join(sourceRoot, item.path)) ? overwrite : create).push(item);
     }
 
@@ -73,16 +88,43 @@ export class ArtifactWriterService {
     }
   }
 
-  /** Asks for confirmation on stdin. Returns false on anything but y/yes. */
+  /**
+   * Asks for confirmation on stdin. Returns false on anything but y/yes.
+   *
+   * `rl.question()` neither resolves nor rejects at EOF, so a closed stdin --
+   * CI, a redirect from /dev/null, an agent -- left the promise pending: the
+   * prompt printed, nothing was written, and the process exited 0 without
+   * reporting anything. Settling on `close` and failing loudly is the point;
+   * a pipeline that silently generates nothing is the worst outcome.
+   *
+   * A pipe is not EOF: `echo y | ddd new ...` still answers, so this must not
+   * be gated on `process.stdin.isTTY`, which is undefined for a pipe.
+   */
   async confirm(question: string): Promise<boolean> {
     const rl = createInterface({
       input: process.stdin,
       output: process.stdout,
     });
+    let closedWithoutAnswer = false;
+
     try {
-      const answer = await rl.question(
-        `  ${question} ${this.ui.muted('(y/N)')} `,
-      );
+      const answer = await new Promise<string>((settle) => {
+        rl.once('close', () => {
+          closedWithoutAnswer = true;
+          settle('');
+        });
+        rl.question(`  ${question} ${this.ui.muted('(y/N)')} `).then(
+          settle,
+          () => settle(''),
+        );
+      });
+
+      if (closedWithoutAnswer) {
+        throw new Error(
+          'No answer on stdin. Pass --yes to confirm non-interactively.',
+        );
+      }
+
       return /^y(es)?$/i.test(answer.trim());
     } finally {
       rl.close();

@@ -19,6 +19,33 @@ describe('ScaffoldService', () => {
       expect(file.path).toBe('shared/validators/order-total-rules.ts');
     });
 
+    it('supplies generics that satisfy their constraints', () => {
+      // `unknown` for every parameter produced
+      // `extends DddAggregateRoot<unknown, unknown, unknown>`, which fails
+      // TS2344 against `TState extends object = object`. Defaulted
+      // parameters are dropped; constrained ones take their constraint.
+      const [file] = service.extend({
+        base: 'DddAggregateRoot',
+        name: 'Order',
+        directory: 'order/domain',
+      });
+
+      expect(file.contents).toContain(
+        'extends DddAggregateRoot<unknown, unknown>',
+      );
+      expect(file.contents).not.toContain('unknown, unknown, unknown');
+    });
+
+    it('rejects a directory that escapes the source root', () => {
+      expect(() =>
+        service.extend({
+          base: 'AbstractRuleValidator',
+          name: 'Escaped',
+          directory: '../../elsewhere',
+        }),
+      ).toThrow(/inside the source root/);
+    });
+
     it('refuses to subclass a collaborator, and says what to do instead', () => {
       expect(() =>
         service.extend({

@@ -118,6 +118,59 @@ describe('idiom rules', () => {
     });
   });
 
+  describe('factory-checks-validity: the two isValid shapes', () => {
+    // DddAggregateRoot declares `isValid(): boolean`; DddValueObject declares
+    // `get isValid(): boolean`. The rule used to accept any body containing
+    // the substring, which is why generated aggregates shipped with a guard
+    // that could never fire.
+    it('flags an aggregate factory that reads isValid as a property', () => {
+      const findings = analyse(
+        factoryChecksValidity,
+        `class Order extends DddAggregateRoot<Order, IProps> {
+           static create(p: IProps): Order {
+             const o = new Order(p);
+             if (!o.isValid) throw new Error('bad');
+             return o;
+           }
+         }`,
+      );
+
+      expect(findings).toHaveLength(1);
+      expect(JSON.stringify(findings)).toContain('method on DddAggregateRoot');
+    });
+
+    it('accepts an aggregate factory that calls it', () => {
+      expect(
+        analyse(
+          factoryChecksValidity,
+          `class Order extends DddAggregateRoot<Order, IProps> {
+             static create(p: IProps): Order {
+               const o = new Order(p);
+               if (!o.isValid()) throw new Error('bad');
+               return o;
+             }
+           }`,
+        ),
+      ).toHaveLength(0);
+    });
+
+    it('flags a value object factory that calls the getter', () => {
+      const findings = analyse(
+        factoryChecksValidity,
+        `class Money extends NumberValueObject {
+           static create(v: number): Money {
+             const m = new Money(v);
+             if (!m.isValid()) throw new Error('bad');
+             return m;
+           }
+         }`,
+      );
+
+      expect(findings).toHaveLength(1);
+      expect(JSON.stringify(findings)).toContain('getter on DddValueObject');
+    });
+  });
+
   describe('handler-commits-events', () => {
     it('flags a handler that never dispatches its events', () => {
       expect(

@@ -58,6 +58,13 @@ export class ScaffoldService {
       );
     }
 
+    // Caught again at the write gate, but failing here names the argument.
+    if (/(^|\/)\.\.(\/|$)/.test(request.directory)) {
+      throw new Error(
+        `The directory must stay inside the source root: "${request.directory}" escapes it.`,
+      );
+    }
+
     const stem = fileStem(request.name);
     const path = `${request.directory}/${stem}.ts`.replace(/^\/+/, '');
 
@@ -67,9 +74,26 @@ export class ScaffoldService {
   }
 
   private renderSubclass(base: StereotypeSymbol, name: string): string {
-    const generics = base.typeParameters.length
-      ? `<${base.typeParameters.map(() => 'unknown').join(', ')}>`
-      : '';
+    // Substituting `unknown` for every parameter ignored constraints, so
+    // `extends DddAggregateRoot<unknown, unknown, unknown>` failed with
+    // TS2344 against `TState extends object = object`. Defaulted parameters
+    // are dropped -- a scaffold has nothing to say about them -- and the rest
+    // take their constraint where one exists.
+    const supplied = base.typeParameters
+      .filter((parameter) => !parameter.hasDefault)
+      .map((parameter) => {
+        // A constraint mentioning its own parameter is F-bounded
+        // (`T extends Comparable<T>`); substituting it would not close.
+        const selfReferential =
+          parameter.constraint &&
+          new RegExp(`\\b${parameter.name}\\b`).test(parameter.constraint);
+
+        return parameter.constraint && !selfReferential
+          ? parameter.constraint
+          : 'unknown';
+      });
+
+    const generics = supplied.length ? `<${supplied.join(', ')}>` : '';
 
     const stubs = base.abstractMembers
       .map((member) => this.renderStub(member))

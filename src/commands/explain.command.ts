@@ -97,7 +97,7 @@ export class ExplainCommand extends CommandRunner {
     const signature =
       `${symbol.isAbstract ? 'abstract ' : ''}${symbol.kind} ${symbol.name}` +
       (symbol.typeParameters.length
-        ? `<${symbol.typeParameters.join(', ')}>`
+        ? `<${symbol.typeParameters.map((p) => p.text).join(', ')}>`
         : '') +
       (symbol.extends ? ` extends ${symbol.extends}` : '') +
       (symbol.implements.length

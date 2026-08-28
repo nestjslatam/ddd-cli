@@ -69,6 +69,73 @@ describe('ArtifactGeneratorService', () => {
     );
   });
 
+  it('calls isValid() on the aggregate rather than reading it', () => {
+    // isValid is a method on DddAggregateRoot and a getter on DddValueObject.
+    // Reading the method tests a function -- always truthy -- so the guard
+    // never fires and create() returns objects that failed their invariants.
+    const aggregate = generator
+      .generate(orderSpec)
+      .find((a) => a.path === 'order/domain/order-aggregate/order.ts')!;
+
+    expect(aggregate.contents).toContain('if (!order.isValid())');
+  });
+
+  it('reads isValid as a property on value objects', () => {
+    const valueObject = generator
+      .generate(orderSpec)
+      .find((a) => a.path === 'shared/valueobjects/order-total.ts')!;
+
+    expect(valueObject.contents).toContain('if (!instance.isValid)');
+    expect(valueObject.contents).not.toContain('instance.isValid()');
+  });
+
+  it('binds the id a mutating handler looks the aggregate up by', () => {
+    // The mutate template hardcoded `findById(id)` while only the command's
+    // own properties are destructured, so every non-create handler referenced
+    // an unbound identifier and failed to compile. The original fixture only
+    // exercised returns: 'string', which took the create path and hid it.
+    const handler = new ArtifactGeneratorService()
+      .generate({
+        ...orderSpec,
+        commands: [
+          {
+            name: 'CancelOrderCommand',
+            description: 'Cancels an order.',
+            properties: [
+              { name: 'orderId', type: 'string' },
+              { name: 'reason', type: 'string' },
+            ],
+            returns: 'void',
+            raises: [],
+          },
+        ],
+      })
+      .find((a) => a.path.endsWith('cancel-order.command-handler.ts'))!;
+
+    expect(handler.contents).toContain('findById(orderId)');
+    expect(handler.contents).not.toMatch(/findById\(id\)/);
+  });
+
+  it('refuses to guess an id when the command carries none', () => {
+    const handler = new ArtifactGeneratorService()
+      .generate({
+        ...orderSpec,
+        commands: [
+          {
+            name: 'ArchiveAllCommand',
+            description: 'Archives everything.',
+            properties: [],
+            returns: 'void',
+            raises: [],
+          },
+        ],
+      })
+      .find((a) => a.path.endsWith('archive-all.command-handler.ts'))!;
+
+    expect(handler.contents).toContain('carries no aggregate id');
+    expect(handler.contents).not.toContain('findById');
+  });
+
   it('ends every file with exactly one trailing newline', () => {
     for (const item of generator.generate(orderSpec)) {
       expect(item.contents.endsWith('\n')).toBe(true);
