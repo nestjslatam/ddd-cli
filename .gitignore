@@ -144,3 +144,6 @@ vite.config.ts.timestamp-*
 
 # Robot output
 robot-report.json
+
+# Publishable package assembled by copy.sh
+dist-package/
