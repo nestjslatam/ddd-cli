@@ -42,6 +42,21 @@ describe('idiom rules', () => {
       ).toHaveLength(0);
     });
 
+    it('stays quiet for IdValueObject, whose base registers nothing', () => {
+      // Counted at runtime: StringValueObject registers 1 validator,
+      // NumberValueObject 2, IdValueObject 0 -- its addValidators() is a bare
+      // super call into an empty hook. Flagging it failed builds while
+      // claiming, untruthfully, that the base adds rules there.
+      expect(
+        analyse(
+          superAddValidators,
+          `class OrderId extends IdValueObject {
+             override addValidators(): void {}
+           }`,
+        ),
+      ).toHaveLength(0);
+    });
+
     it('stays quiet for bases whose addValidators is an empty hook', () => {
       // DddValueObject and DddAggregateRoot declare it and do nothing, so a
       // subclass loses nothing by not chaining. Firing here would be noise.
