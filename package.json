@@ -52,7 +52,9 @@
     "type-check": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "robot": "npm run build && ts-node robot/robot.ts",
+    "robot:json": "npm run build && ROBOT_JSON=robot-report.json ts-node robot/robot.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
