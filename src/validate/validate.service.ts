@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import * as ts from 'typescript';
@@ -18,6 +18,15 @@ const SKIP_DIRECTORIES = new Set([
 export class ValidateService {
   /** Runs every idiom rule over the TypeScript under `root`. */
   run(root: string, projectRoot: string): Finding[] {
+    if (!existsSync(root)) {
+      // Without this the raw ENOENT from statSync reaches the terminal.
+      throw new Error(
+        `No such path: ${relative(projectRoot, root) || root}\n\n  ` +
+          'Pass a file or directory to scan, or omit the argument to scan the ' +
+          "project's source root.",
+      );
+    }
+
     const findings: Finding[] = [];
 
     for (const file of this.sourceFiles(root)) {
