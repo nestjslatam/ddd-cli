@@ -9,6 +9,23 @@ ddd generate:aggregate "An order has a customer name and a total. \
   The total must be positive and cannot exceed 1,000,000."
 ```
 
+## Look and feel
+
+Output follows the [nestjslatam.dev](https://nestjslatam.dev/) identity. The palette is the site's own design tokens, read from its stylesheet rather than approximated:
+
+| Token | Colour | Used for |
+|---|---|---|
+| `--accent` | `#1e73be` | symbol names, commands, emphasis |
+| `--contrast-2` | `#575760` | secondary text, provenance, hints |
+| `--contrast-3` | `#b2b2be` | rules, dividers, the quietest detail |
+| NestJS red | `#e0234e` | errors |
+
+Success and warning (`#00d084`, `#fcb900`) come from the preset palette the site's theme ships; the brand defines no green or amber.
+
+Primary text is deliberately left uncoloured. A terminal already has a foreground that suits its background, and `--contrast` (`#222222`) would be unreadable on a dark theme.
+
+Colour degrades by terminal capability — 24-bit where `COLORTERM` advertises it, 256 colours, then the basic eight. `NO_COLOR`, `TERM=dumb` and piped output all produce plain text, so redirecting to a file stays clean.
+
 ## Understanding the library
 
 ```bash

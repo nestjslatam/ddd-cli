@@ -2,7 +2,7 @@ import { Command, CommandRunner, Option } from 'nest-commander';
 
 import { LibraryIntrospectorService } from '../library/library-introspector.service';
 import { StereotypeFamily, StereotypeRole } from '../library/stereotype.model';
-import { bold, cyan, dim, green, yellow } from '../project/ansi';
+import { UiService } from '../ui/ui.service';
 
 interface ListOptions {
   family?: string;
@@ -19,18 +19,11 @@ const FAMILY_ORDER: StereotypeFamily[] = [
   'Infrastructure',
 ];
 
-const ROLE_LABEL: Record<StereotypeRole, string> = {
-  extend: 'extend   ',
-  implement: 'implement',
-  compose: 'compose  ',
-  use: 'use      ',
-};
-
-const ROLE_COLOUR: Record<StereotypeRole, (text: string) => string> = {
-  extend: green,
-  implement: cyan,
-  compose: yellow,
-  use: dim,
+const ROLE_HELP: Record<StereotypeRole, string> = {
+  extend: 'subclass it',
+  implement: 'satisfy the interface',
+  compose: 'the aggregate delegates to it',
+  use: 'call it directly',
 };
 
 @Command({
@@ -40,7 +33,10 @@ const ROLE_COLOUR: Record<StereotypeRole, (text: string) => string> = {
     'Inventory every stereotype the library exposes, and how to use each',
 })
 export class ListCommand extends CommandRunner {
-  constructor(private readonly library: LibraryIntrospectorService) {
+  constructor(
+    private readonly library: LibraryIntrospectorService,
+    private readonly ui: UiService,
+  ) {
     super();
   }
 
@@ -57,17 +53,13 @@ export class ListCommand extends CommandRunner {
     }
 
     if (!symbols.length) {
-      console.log(dim('\n  Nothing matched that filter.\n'));
+      this.ui.blank();
+      this.ui.hint('Nothing matched that filter.');
+      this.ui.blank();
       return;
     }
 
-    console.log('');
-    console.log(
-      dim(
-        '  extend = you subclass it   implement = you satisfy the interface\n' +
-          '  compose = the aggregate delegates to it   use = call it directly\n',
-      ),
-    );
+    this.renderLegend();
 
     for (const family of FAMILY_ORDER) {
       const inFamily = symbols.filter((s) => s.family === family);
@@ -75,34 +67,69 @@ export class ListCommand extends CommandRunner {
         continue;
       }
 
-      console.log(bold(`  ${family}`));
-
-      for (const symbol of inFamily) {
-        const role = ROLE_COLOUR[symbol.role](ROLE_LABEL[symbol.role]);
-        const heritage = symbol.aliasOf
-          ? dim(` alias of ${symbol.aliasOf}`)
-          : symbol.extends
-            ? dim(` extends ${symbol.extends}`)
-            : '';
-        const contract = symbol.abstractMembers.length
-          ? dim(
-              `  implement: ${symbol.abstractMembers.map((m) => m.name).join(', ')}`,
-            )
-          : '';
-        console.log(
-          `    ${role}  ${symbol.name.padEnd(34)}${heritage}${contract}`,
-        );
-      }
-
-      console.log('');
+      this.ui.heading(family);
+      this.ui.rows(
+        inFamily.map((symbol) => [
+          `${this.paintRole(symbol.role)}  ${this.ui.strong(symbol.name)}`,
+          this.detail(symbol),
+        ]),
+      );
     }
 
-    console.log(
-      dim(`  ${symbols.length} symbols. `) +
-        dim('Run ') +
-        cyan('ddd explain <name>') +
-        dim(' for any of them.\n'),
+    this.ui.blank();
+    this.ui.hint(
+      `${symbols.length} symbols · ${this.ui.accent('ddd explain <name>')} ` +
+        `${this.ui.muted('for any of them')}`,
     );
+    this.ui.blank();
+  }
+
+  private renderLegend(): void {
+    this.ui.blank();
+    this.ui.rows(
+      (Object.keys(ROLE_HELP) as StereotypeRole[]).map((role) => [
+        this.paintRole(role),
+        this.ui.muted(ROLE_HELP[role]),
+      ]),
+    );
+  }
+
+  private paintRole(role: StereotypeRole): string {
+    const label = role.padEnd(9);
+    switch (role) {
+      case 'extend':
+        return this.ui.success(label);
+      case 'implement':
+        return this.ui.accent(label);
+      case 'compose':
+        return this.ui.warning(label);
+      default:
+        return this.ui.subtle(label);
+    }
+  }
+
+  private detail(symbol: {
+    aliasOf?: string;
+    extends?: string;
+    abstractMembers: Array<{ name: string }>;
+  }): string {
+    const parts: string[] = [];
+
+    if (symbol.aliasOf) {
+      parts.push(this.ui.muted(`alias of ${symbol.aliasOf}`));
+    } else if (symbol.extends) {
+      parts.push(this.ui.muted(`extends ${symbol.extends}`));
+    }
+
+    if (symbol.abstractMembers.length) {
+      parts.push(
+        this.ui.subtle(
+          `implement ${symbol.abstractMembers.map((m) => m.name).join(', ')}`,
+        ),
+      );
+    }
+
+    return parts.join(this.ui.subtle(' · '));
   }
 
   @Option({

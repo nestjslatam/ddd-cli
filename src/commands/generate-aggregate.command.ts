@@ -3,9 +3,9 @@ import { Command, CommandRunner, Option } from 'nest-commander';
 import { AggregatePlannerService } from '../generation/aggregate-planner.service';
 import { ArtifactGeneratorService } from '../generation/artifact-generator.service';
 import { LlmProviderFactory } from '../llm/llm-provider.factory';
-import { bold, cyan, dim, green, red } from '../project/ansi';
 import { ArtifactWriterService } from '../project/artifact-writer.service';
 import { ProjectLocatorService } from '../project/project-locator.service';
+import { UiService } from '../ui/ui.service';
 
 interface GenerateAggregateOptions {
   provider?: string;
@@ -29,6 +29,7 @@ export class GenerateAggregateCommand extends CommandRunner {
     private readonly generator: ArtifactGeneratorService,
     private readonly locator: ProjectLocatorService,
     private readonly writer: ArtifactWriterService,
+    private readonly ui: UiService,
   ) {
     super();
   }
@@ -46,11 +47,10 @@ export class GenerateAggregateCommand extends CommandRunner {
     const project = this.locator.locate();
 
     if (!project.hasDddLib) {
-      console.log(
-        dim(
-          `  Note: ${project.root} does not depend on @nestjslatam/ddd-lib yet. ` +
-            'The generated code will not compile until you install it.',
-        ),
+      this.ui.blank();
+      this.ui.warn(
+        `${project.root} does not depend on @nestjslatam/ddd-lib yet — ` +
+          'the generated code will not compile until you install it.',
       );
     }
 
@@ -59,54 +59,59 @@ export class GenerateAggregateCommand extends CommandRunner {
       model: options.model,
     });
 
-    console.log(
-      dim(`\n  Modelling with ${provider.id} (${provider.model})...`),
-    );
+    this.ui.blank();
+    this.ui.hint(`Modelling with ${provider.id} (${provider.model})…`);
 
     const spec = await this.planner.plan(provider, description);
 
-    console.log('');
-    for (const line of this.generator.summarise(spec)) {
-      console.log(`  ${dim(line)}`);
-    }
+    this.ui.heading('Model');
+    this.ui.rows(
+      this.generator.summarise(spec).map((line) => {
+        const [label, ...rest] = line.split(/\s{2,}/);
+        return [this.ui.muted(label), rest.join(' ')] as [string, string];
+      }),
+    );
 
     const artifacts = this.generator.generate(spec);
     const plan = this.writer.plan(artifacts, project.sourceRoot);
 
-    console.log(this.writer.renderPreview(plan, project.sourceRoot));
+    this.writer.renderPreview(plan, project.sourceRoot);
 
     if (options.dryRun) {
-      console.log(dim('  Dry run: nothing was written.\n'));
+      this.ui.hint('Dry run: nothing was written.');
+      this.ui.blank();
       return;
     }
 
     if (!plan.create.length && !options.force) {
-      console.log(dim('  Every file already exists. Nothing to do.\n'));
+      this.ui.hint('Every file already exists. Nothing to do.');
+      this.ui.blank();
       return;
     }
 
     const approved =
-      options.yes || (await this.writer.confirm(bold('Write these files?')));
+      options.yes ||
+      (await this.writer.confirm(this.ui.strong('Write these files?')));
 
     if (!approved) {
-      console.log(dim('  Cancelled. Nothing was written.\n'));
+      this.ui.hint('Cancelled. Nothing was written.');
+      this.ui.blank();
       return;
     }
 
     const result = this.writer.write(plan, project.sourceRoot, !!options.force);
 
-    console.log(
-      `\n  ${green('Done.')} ${result.written} file(s) written` +
+    this.ui.blank();
+    this.ui.ok(
+      `${result.written} file(s) written` +
         (result.skipped
-          ? `, ${result.skipped} left alone (pass --force to overwrite)`
-          : '') +
-        '.\n',
+          ? `, ${result.skipped} left alone — pass --force to overwrite`
+          : ''),
     );
-    console.log(
-      dim(
-        `  Register ${cyan(`${spec.name}Module`)} in your application module to wire it up.\n`,
-      ),
+    this.ui.hint(
+      `Register ${this.ui.accent(`${spec.name}Module`)} in your application module to wire it up.`,
     );
+    this.ui.blank();
   }
 
   @Option({
@@ -150,7 +155,3 @@ export class GenerateAggregateCommand extends CommandRunner {
     return true;
   }
 }
-
-/** Exported for the error path in main.ts. */
-export const formatError = (error: unknown): string =>
-  `${red('Error:')} ${error instanceof Error ? error.message : String(error)}`;

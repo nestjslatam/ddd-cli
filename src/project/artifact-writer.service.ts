@@ -4,7 +4,7 @@ import { createInterface } from 'node:readline/promises';
 import { Injectable } from '@nestjs/common';
 
 import { Artifact } from '../generation/artifact.model';
-import { bold, cyan, dim, green, yellow } from './ansi';
+import { UiService } from '../ui/ui.service';
 
 export interface WritePlan {
   create: Artifact[];
@@ -25,6 +25,8 @@ export interface WriteResult {
  */
 @Injectable()
 export class ArtifactWriterService {
+  constructor(private readonly ui: UiService) {}
+
   plan(artifacts: Artifact[], sourceRoot: string): WritePlan {
     const create: Artifact[] = [];
     const overwrite: Artifact[] = [];
@@ -36,37 +38,39 @@ export class ArtifactWriterService {
     return { create, overwrite };
   }
 
-  renderPreview(plan: WritePlan, sourceRoot: string): string {
-    const lines: string[] = [];
+  /** Prints the file list, grouped by whether each would be created. */
+  renderPreview(plan: WritePlan, sourceRoot: string): void {
     const root = relative(process.cwd(), sourceRoot) || '.';
 
-    lines.push('');
-    lines.push(bold(`Files to generate under ${cyan(root)}`));
-    lines.push('');
+    this.ui.heading(`Files under ${this.ui.accent(root)}`);
 
-    for (const item of plan.create) {
-      lines.push(`  ${green('create')}  ${item.path}  ${dim(item.kind)}`);
-    }
-
-    for (const item of plan.overwrite) {
-      lines.push(`  ${yellow('exists')}  ${item.path}  ${dim(item.kind)}`);
-    }
-
-    lines.push('');
-    lines.push(
-      dim(
-        `  ${plan.create.length} new, ${plan.overwrite.length} already present`,
+    this.ui.rows([
+      ...plan.create.map(
+        (item) =>
+          [
+            this.ui.success(`create  ${item.path}`),
+            this.ui.subtle(item.kind),
+          ] as [string, string],
       ),
+      ...plan.overwrite.map(
+        (item) =>
+          [
+            this.ui.warning(`exists  ${item.path}`),
+            this.ui.subtle(item.kind),
+          ] as [string, string],
+      ),
+    ]);
+
+    this.ui.blank();
+    this.ui.hint(
+      `${plan.create.length} new · ${plan.overwrite.length} already present`,
     );
 
     if (plan.overwrite.length) {
-      lines.push(
-        yellow('  Existing files are left untouched unless you pass --force.'),
+      this.ui.warn(
+        'Existing files are left untouched unless you pass --force.',
       );
     }
-
-    lines.push('');
-    return lines.join('\n');
   }
 
   /** Asks for confirmation on stdin. Returns false on anything but y/yes. */
@@ -76,7 +80,9 @@ export class ArtifactWriterService {
       output: process.stdout,
     });
     try {
-      const answer = await rl.question(`${question} ${dim('(y/N)')} `);
+      const answer = await rl.question(
+        `  ${question} ${this.ui.muted('(y/N)')} `,
+      );
       return /^y(es)?$/i.test(answer.trim());
     } finally {
       rl.close();

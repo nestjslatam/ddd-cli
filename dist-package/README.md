@@ -9,6 +9,31 @@ ddd generate:aggregate "An order has a customer name and a total. \
   The total must be positive and cannot exceed 1,000,000."
 ```
 
+## Understanding the library
+
+```bash
+ddd list                              # every stereotype, grouped, with its role
+ddd list --family validation          # just the validators and business rules
+ddd list --role extend                # only the base classes you subclass
+ddd explain AbstractRuleValidator     # what it is, the contract, an example
+ddd explain BrokenRulesManager --raw  # the declaration only, no model call
+```
+
+`list` needs no model at all. It reads the `.d.ts` files of the `@nestjslatam/ddd-lib` **installed in your project**, with the TypeScript compiler, and reports what is actually there — so it stays correct across library versions without the CLI being updated.
+
+The output turns on a distinction that is most of understanding this library's design:
+
+| Role | Meaning |
+|---|---|
+| `extend` | A base class you subclass. `ddd list` shows the abstract members you must implement. |
+| `implement` | An interface you satisfy. |
+| `compose` | A collaborator the aggregate **delegates to** rather than inheriting from — `BrokenRulesManager`, `ValidatorRuleManager`, `TrackingStateManager`. This is the decoupling. |
+| `use` | Call it directly. |
+
+`explain` adds a model to that, but the model only ever sees the real declaration: the signature, the abstract members, the JSDoc as published. It is told to say so when the declaration does not answer something rather than fill the gap, so it cannot describe an API that does not exist. The facts are printed before the explanation so you can tell them apart, and `--raw` skips the model entirely.
+
+Aliased exports are resolved: `AbstractDomainEvent` is reported as an alias of `DomainEvent`, because they are the same class.
+
 ## How it works
 
 The model never writes TypeScript.

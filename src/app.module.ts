@@ -7,9 +7,16 @@ import { GenerationModule } from './generation/generation.module';
 import { LibraryModule } from './library/library.module';
 import { LlmModule } from './llm/llm.module';
 import { ProjectModule } from './project/project.module';
+import { UiModule } from './ui/ui.module';
 
 @Module({
-  imports: [LlmModule, LibraryModule, GenerationModule, ProjectModule],
+  imports: [
+    UiModule,
+    LlmModule,
+    LibraryModule,
+    GenerationModule,
+    ProjectModule,
+  ],
   providers: [GenerateAggregateCommand, ListCommand, ExplainCommand],
 })
 export class AppModule {}
