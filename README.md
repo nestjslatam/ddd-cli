@@ -9,6 +9,44 @@ ddd generate:aggregate "An order has a customer name and a total. \
   The total must be positive and cannot exceed 1,000,000."
 ```
 
+## Use it from the agent you already have
+
+If you are working inside Claude Code, Codex, Cursor or anything else that speaks MCP, that agent already has a model and credentials. Asking it to also provision an API key so this CLI can open a second connection is redundant — so don't. Register the CLI as an MCP server and the agent drives it with its own model:
+
+```bash
+claude mcp add ddd -- npx -y @nestjslatam/ddd-cli mcp
+```
+
+Or, for any MCP client, in its server configuration:
+
+```json
+{
+  "mcpServers": {
+    "ddd": { "command": "npx", "args": ["-y", "@nestjslatam/ddd-cli", "mcp"] }
+  }
+}
+```
+
+Seven tools become available, and **no API key is involved**:
+
+| Tool | What it does |
+|---|---|
+| `ddd_list` | Inventory the stereotypes, with the role of each |
+| `ddd_describe` | The real declaration of one stereotype — **facts, not prose**. The agent writes the explanation; that is what it is for. |
+| `ddd_new` | Scaffold a stereotype from a deterministic template |
+| `ddd_extend` | Subclass a base, stubbing its contract |
+| `ddd_validate` | Audit code against the library idiom |
+| `ddd_aggregate_schema` | The contract an aggregate model must satisfy, plus the modelling rules |
+| `ddd_render_aggregate` | Turn a specification into files |
+
+The last two are the division of labour. **The agent does the domain modelling** — deciding aggregate boundaries, which concepts deserve value objects, what the invariants are — and this renders the code deterministically. A specification that does not satisfy the schema comes back with per-field issues, so the agent can correct itself without a human in the loop.
+
+Nothing is written to disk unless a call passes `write: true`, and even then existing files are never overwritten: an agent acting unattended must not clobber hand-edited domain code.
+
+### Without an agent
+
+The direct-API path remains for CI and standalone use. `ddd explain` and `ddd generate:aggregate` call a model themselves when `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is present — but they are the only two commands that ever need one. `list`, `new`, `extend`, `validate` and `explain --raw` never touch a model.
+
 ## Look and feel
 
 Output follows the [nestjslatam.dev](https://nestjslatam.dev/) identity. The palette is the site's own design tokens, read from its stylesheet rather than approximated:

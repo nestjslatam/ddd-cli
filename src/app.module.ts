@@ -4,11 +4,13 @@ import { ExplainCommand } from './commands/explain.command';
 import { ExtendCommand } from './commands/extend.command';
 import { GenerateAggregateCommand } from './commands/generate-aggregate.command';
 import { ListCommand } from './commands/list.command';
+import { McpCommand } from './commands/mcp.command';
 import { NewCommand } from './commands/new.command';
 import { ValidateCommand } from './commands/validate.command';
 import { GenerationModule } from './generation/generation.module';
 import { LibraryModule } from './library/library.module';
 import { LlmModule } from './llm/llm.module';
+import { McpModule } from './mcp/mcp.module';
 import { ProjectModule } from './project/project.module';
 import { ScaffoldModule } from './scaffold/scaffold.module';
 import { UiModule } from './ui/ui.module';
@@ -23,6 +25,7 @@ import { ValidateModule } from './validate/validate.module';
     ProjectModule,
     ScaffoldModule,
     ValidateModule,
+    McpModule,
   ],
   providers: [
     GenerateAggregateCommand,
@@ -31,6 +34,7 @@ import { ValidateModule } from './validate/validate.module';
     NewCommand,
     ExtendCommand,
     ValidateCommand,
+    McpCommand,
   ],
 })
 export class AppModule {}

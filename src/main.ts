@@ -12,9 +12,14 @@ import { detectDepth, paint } from './ui/theme';
  * is suppressed and only warnings and errors reach the terminal.
  * DDD_CLI_DEBUG restores the full log for troubleshooting.
  */
-const logger: LogLevel[] = process.env.DDD_CLI_DEBUG
-  ? ['log', 'error', 'warn', 'debug', 'verbose']
-  : ['warn', 'error'];
+const logger: LogLevel[] | false = process.argv.includes('mcp')
+  ? // MCP speaks JSON-RPC over stdout. Nest's logger writes there too, and a
+    // single stray line corrupts the stream, so it is silenced entirely for
+    // this command rather than merely quietened.
+    false
+  : process.env.DDD_CLI_DEBUG
+    ? ['log', 'error', 'warn', 'debug', 'verbose']
+    : ['warn', 'error'];
 
 /**
  * Reports a failure and fails.
