@@ -58,4 +58,24 @@ describe('stereotype templates', () => {
     expect(file.contents).toContain('static load');
     expect(file.contents).toContain('markAsClean');
   });
+
+  it('reports each stereotype as what it actually is', () => {
+    // Every one of these was mislabelled: an exception announced itself as a
+    // validator and an enum as a value object. The label is the only
+    // description a user -- or an agent over MCP -- gets before confirming a
+    // write, so a wrong one is worse than a vague one.
+    const kindOf = (request: Parameters<typeof renderStereotype>[0]) =>
+      renderStereotype(request)[0].kind;
+
+    expect(kindOf({ kind: 'value-object', name: 'Sku' })).toBe('value-object');
+    expect(
+      kindOf({ kind: 'validator', name: 'SkuRules', subject: 'Sku' }),
+    ).toBe('validator');
+    expect(kindOf({ kind: 'event', name: 'OrderPlaced' })).toBe('domain-event');
+    expect(kindOf({ kind: 'exception', name: 'OrderClosed' })).toBe(
+      'exception',
+    );
+    expect(kindOf({ kind: 'aggregate', name: 'Order' })).toBe('aggregate');
+    expect(kindOf({ kind: 'enum', name: 'OrderStatus' })).toBe('enum');
+  });
 });

@@ -177,7 +177,7 @@ function renderException(request: NewRequest): Artifact {
     : `${request.name}Exception`;
 
   return artifact(
-    'validator',
+    'exception',
     `shared/exceptions/${fileStem(name)}.ts`,
     `import { DomainException } from '@nestjslatam/ddd-lib';
 
@@ -250,7 +250,7 @@ export class ${request.name} extends DddAggregateRoot<
 
 function renderEnum(request: NewRequest): Artifact {
   return artifact(
-    'value-object',
+    'enum',
     `shared/enums/${fileStem(request.name)}.ts`,
     `import { DddEnum } from '@nestjslatam/ddd-lib';
 

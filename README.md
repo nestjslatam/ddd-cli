@@ -10,7 +10,7 @@
 [![no api key](https://img.shields.io/badge/API%20key-not%20required-00d084)](#driving-it-from-an-ai-agent)
 [![license](https://img.shields.io/badge/license-MIT-575760)](LICENSE)
 
-[Why](#why) · [Commands](#commands) · [MCP](#driving-it-from-an-ai-agent) · [FAQ](#faq) · [Contributing](#contributing)
+[**Full guide**](docs/GUIDE.md) · [Why](#why) · [Commands](#commands) · [MCP](#driving-it-from-an-ai-agent) · [FAQ](#faq) · [Contributing](#contributing)
 
 </div>
 
@@ -19,6 +19,9 @@
 ```bash
 npm install -D @nestjslatam/ddd-cli
 ```
+
+> [!TIP]
+> **[Read the full guide →](docs/GUIDE.md)** — every command and flag, walked through by building the cargo-shipping domain from nothing into ten type-checking files. Every line of output on that page was produced by running the CLI, not written from memory.
 
 ## Why
 
@@ -232,6 +235,7 @@ Built and maintained by **[BeyondNet Tech](https://beyondnet.info/)** with the [
 
 ## More
 
+- [**The guide**](docs/GUIDE.md) — every command, every flag, one worked domain end to end
 - [`nestjslatam/ddd`](https://github.com/nestjslatam/ddd) — the library this tool reads
 - [CHANGELOG](CHANGELOG.md) — every release and why
 

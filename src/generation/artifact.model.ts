@@ -17,6 +17,8 @@ export type ArtifactKind =
   | 'repository'
   | 'module'
   | 'barrel'
+  | 'exception'
+  | 'enum'
   /** A subclass of a base the generator has no more specific name for. */
   | 'subclass';
 
