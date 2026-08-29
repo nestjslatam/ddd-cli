@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### The licence is MIT
+
+`package.json` had always declared `MIT`, but the `LICENSE` file beside it was the **GNU General Public License v3** — unmodified boilerplate, with the copyright holder never filled in, which is what a template default looks like rather than a decision. Both shipped in the same tarball, and GPL-3.0 is copyleft: a consumer reading the `LICENSE` file rather than the manifest would have concluded this package imposed obligations the rest of the family does not.
+
+`LICENSE` is now MIT, matching the manifest and `ddd-lib`, `ddd-valueobjects` and `ddd-es-lib`. **`0.2.0`, the version currently on npm, still ships the GPL file** — a published tarball cannot be amended in place, so the correction reaches consumers with the next release, and the README says so.
+
 ### Tracks `@nestjslatam/ddd-lib` 3.0.0
 
 The declared dependency moves from `^2.1.2` to `^3.0.0`, and with it the robot's default fixture version and the CI smoke install.

@@ -5,9 +5,7 @@ A command-line tool for `@nestjslatam/ddd-lib`: inventory its stereotypes, scaff
 [![npm](https://img.shields.io/npm/v/%40nestjslatam%2Fddd-cli.svg)](https://www.npmjs.com/package/@nestjslatam/ddd-cli) [![CI](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml)
 
 > [!WARNING]
-> **Pre-1.0, and the licensing is unresolved.** `0.2.0` is under active development; the surface can change in any minor release, so pin an exact version.
->
-> The published tarball contradicts itself: its `package.json` declares `MIT`, and the `LICENSE` file shipped beside it is the GNU General Public License v3. Both are in the same tarball — `npm run build:lib` puts them there. Nobody has decided which one governs. Treat the terms as unsettled before depending on this package.
+> **Pre-1.0.** `0.2.0` is under active development; the surface can change in any minor release, so pin an exact version.
 
 ```bash
 npm install -g @nestjslatam/ddd-cli
@@ -39,12 +37,12 @@ ddd validate                                  # audit what you wrote against the
 
 ## The ecosystem
 
-| Package | What it is |
-|---|---|
-| [`@nestjslatam/ddd-lib`](https://www.npmjs.com/package/@nestjslatam/ddd-lib) | DDD building blocks: aggregates, value objects, validators, broken rules, state tracking |
-| **[`@nestjslatam/ddd-cli`](https://www.npmjs.com/package/@nestjslatam/ddd-cli)** | Inventory the stereotypes, scaffold them, subclass them, audit your code. Runs as an MCP server so an AI agent can drive it — you are here |
-| [`@nestjslatam/ddd-valueobjects`](https://www.npmjs.com/package/@nestjslatam/ddd-valueobjects) | Ready-made value objects: email, phone number, money, date range, document id |
-| [`@nestjslatam/ddd-es-lib`](https://www.npmjs.com/package/@nestjslatam/ddd-es-lib) | Event sourcing: event store, snapshots, upcasting, sagas, materialised views |
+| Package                                                                                        | What it is                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`@nestjslatam/ddd-lib`](https://www.npmjs.com/package/@nestjslatam/ddd-lib)                   | DDD building blocks: aggregates, value objects, validators, broken rules, state tracking                                                   |
+| **[`@nestjslatam/ddd-cli`](https://www.npmjs.com/package/@nestjslatam/ddd-cli)**               | Inventory the stereotypes, scaffold them, subclass them, audit your code. Runs as an MCP server so an AI agent can drive it — you are here |
+| [`@nestjslatam/ddd-valueobjects`](https://www.npmjs.com/package/@nestjslatam/ddd-valueobjects) | Ready-made value objects: email, phone number, money, date range, document id                                                              |
+| [`@nestjslatam/ddd-es-lib`](https://www.npmjs.com/package/@nestjslatam/ddd-es-lib)             | Event sourcing: event store, snapshots, upcasting, sagas, materialised views                                                               |
 
 ## Requirements
 
@@ -86,12 +84,12 @@ ddd validate src/orders # or one path
 ddd validate --strict   # fail on warnings too
 ```
 
-| Rule | Severity | Why it matters |
-|---|---|---|
-| `super-add-validators` | error | `StringValueObject`, `NumberValueObject` and `IdValueObject` register real validators in `addValidators()`. An override that does not chain drops them, and invalid values pass with no error. |
-| `no-subclass-state-in-add-validators` | error | The base constructor calls `addValidators()` before the subclass constructor body runs, so reading a field assigned there throws on every construction. |
-| `factory-checks-validity` | warning | Validation collects broken rules rather than throwing, so a `create()` that never checks `isValid` can hand back an object that failed its own invariants. |
-| `handler-commits-events` | warning | An aggregate collects its domain events; only `mergeObjectContext(...).commit()` dispatches them. Without it the command succeeds and every downstream handler is silently skipped. |
+| Rule                                  | Severity | Why it matters                                                                                                                                                                                 |
+| ------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `super-add-validators`                | error    | `StringValueObject`, `NumberValueObject` and `IdValueObject` register real validators in `addValidators()`. An override that does not chain drops them, and invalid values pass with no error. |
+| `no-subclass-state-in-add-validators` | error    | The base constructor calls `addValidators()` before the subclass constructor body runs, so reading a field assigned there throws on every construction.                                        |
+| `factory-checks-validity`             | warning  | Validation collects broken rules rather than throwing, so a `create()` that never checks `isValid` can hand back an object that failed its own invariants.                                     |
+| `handler-commits-events`              | warning  | An aggregate collects its domain events; only `mergeObjectContext(...).commit()` dispatches them. Without it the command succeeds and every downstream handler is silently skipped.            |
 
 Exit code is 1 when errors are found, 1 on warnings alone under `--strict`, and 0 when nothing is reported — so it can gate a build.
 
@@ -120,13 +118,13 @@ shared/valueobjects/validators/order-total-rules.validator.ts    extends Abstrac
 
 plus an `index.ts` barrel in five of them -- the aggregate folder, its `events/` and `validators/`, and `shared/valueobjects/` and its `validators/`. The module root, the use-case folder and `infrastructure/repositories/` get none. As with `ddd new`, the full file list is previewed and confirmed (`Write these files? (y/N)`) before anything lands, and existing files are reported as `exists` and left untouched unless you pass `--force`.
 
-| Flag | Effect |
-|---|---|
-| `-p, --provider <id>` | `anthropic` or `openai` |
-| `-m, --model <id>` | Override the provider's default model |
-| `-d, --dry-run` | Show what would be generated, write nothing |
-| `-f, --force` | Overwrite files that already exist |
-| `-y, --yes` | Skip the confirmation prompt |
+| Flag                  | Effect                                      |
+| --------------------- | ------------------------------------------- |
+| `-p, --provider <id>` | `anthropic` or `openai`                     |
+| `-m, --model <id>`    | Override the provider's default model       |
+| `-d, --dry-run`       | Show what would be generated, write nothing |
+| `-f, --force`         | Overwrite files that already exist          |
+| `-y, --yes`           | Skip the confirmation prompt                |
 
 `anthropic` defaults to `claude-opus-5` and accepts `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or an `ANTHROPIC_PROFILE`; `openai` defaults to `gpt-5` and reads `OPENAI_API_KEY`. Whichever credential is present is picked automatically, Anthropic first.
 
@@ -174,4 +172,8 @@ CI runs lint, `tsc --noEmit`, the unit suite and a build on Node 20.x and 22.x, 
 
 ## License
 
-Unresolved. `package.json` declares `MIT`; the [LICENSE](LICENSE) file in this repository, and the copy shipped inside the npm tarball, is the GNU General Public License v3. The two disagree and no maintainer has settled it — ask before depending on either reading.
+MIT — [`LICENSE`](LICENSE) and `package.json` now agree, as does the copy shipped inside the npm tarball.
+
+They did not until this was settled. `package.json` had always declared `MIT`, but the `LICENSE` beside it was the GNU General Public License v3 — unmodified boilerplate, with the copyright holder never filled in, which is what a template default looks like rather than a decision. The two shipped together in the same tarball, and GPL-3.0 is copyleft, so a consumer reading the `LICENSE` file rather than the manifest would have concluded this package imposed obligations the rest of the family does not.
+
+**`0.2.0`, the version currently on npm, still ships the GPL file.** A published tarball cannot be amended in place; the correction reaches consumers with the next release.
