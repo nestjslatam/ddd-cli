@@ -1,48 +1,50 @@
-# The `ddd` CLI — a working guide
+# El CLI `ddd` — guía práctica
 
-Every command, every flag, and every piece of output on this page was produced by running the CLI against `@nestjslatam/ddd-lib@3.0.0`. Nothing here is illustrative.
+Cada comando, cada opción y cada línea de salida de esta página se produjo ejecutando el CLI contra `@nestjslatam/ddd-lib@3.0.0`. Nada de lo que hay aquí es ilustrativo.
 
-We build one thing from nothing: the **cargo shipping** domain from Eric Evans' book, chosen because it is a genuine object graph rather than a single class — a `Cargo` aggregate holding a route specification, a voyage, weights and locations, emitting events, guarded by validators. By the end there are ten files, and `tsc --noEmit` passes on all of them without a line being hand-edited.
+> **La salida de terminal va en inglés**, que es el idioma en el que imprime la herramienta. Traducirla sería enseñarte algo que el CLI no dice.
 
-**Contents**
+Construimos una cosa desde cero: el dominio de **transporte marítimo** del libro de Eric Evans, elegido porque es un grafo de objetos de verdad y no una clase suelta — un agregado `Cargo` que contiene una especificación de ruta, un viaje, pesos y ubicaciones, que emite eventos y está protegido por validadores. Al final hay diez ficheros, y `tsc --noEmit` pasa sobre todos ellos sin que se haya editado una línea a mano.
 
-1. [Install](#1-install)
-2. [Orient yourself: `ddd list`](#2-orient-yourself-ddd-list)
-3. [Read a contract: `ddd explain`](#3-read-a-contract-ddd-explain)
-4. [Build the graph: `ddd new`](#4-build-the-graph-ddd-new)
-5. [Subclass anything: `ddd extend`](#5-subclass-anything-ddd-extend)
-6. [Catch what the compiler cannot: `ddd validate`](#6-catch-what-the-compiler-cannot-ddd-validate)
-7. [Hand it to an AI agent: `ddd mcp`](#7-hand-it-to-an-ai-agent-ddd-mcp)
-8. [Model from prose: `ddd generate:aggregate`](#8-model-from-prose-ddd-generateaggregate)
-9. [Command reference](#9-command-reference)
-10. [Troubleshooting](#10-troubleshooting)
+**Contenido**
+
+1. [Instalar](#1-instalar)
+2. [Orientarse: `ddd list`](#2-orientarse-ddd-list)
+3. [Leer un contrato: `ddd explain`](#3-leer-un-contrato-ddd-explain)
+4. [Construir el grafo: `ddd new`](#4-construir-el-grafo-ddd-new)
+5. [Heredar de cualquier cosa: `ddd extend`](#5-heredar-de-cualquier-cosa-ddd-extend)
+6. [Cazar lo que el compilador no ve: `ddd validate`](#6-cazar-lo-que-el-compilador-no-ve-ddd-validate)
+7. [Dárselo a un agente de IA: `ddd mcp`](#7-dárselo-a-un-agente-de-ia-ddd-mcp)
+8. [Modelar desde prosa: `ddd generate:aggregate`](#8-modelar-desde-prosa-ddd-generateaggregate)
+9. [Referencia de comandos](#9-referencia-de-comandos)
+10. [Cuando algo no sale](#10-cuando-algo-no-sale)
 
 ---
 
-## 1. Install
+## 1. Instalar
 
 ```bash
 npm install @nestjslatam/ddd-lib @nestjs/cqrs
 npm install -D @nestjslatam/ddd-cli
 ```
 
-`@nestjs/cqrs` is not optional — `DddAggregateRoot` extends its `AggregateRoot`.
+`@nestjs/cqrs` no es opcional — `DddAggregateRoot` extiende su `AggregateRoot`.
 
-The CLI needs no API key for anything in sections 2 to 7. Only `generate:aggregate` and `explain` without `--raw` call a model, and even those do not when you drive the CLI from an agent over MCP.
+El CLI **no necesita ninguna clave de API** para nada de lo que hay entre las secciones 2 y 7. Sólo `generate:aggregate` y `explain` sin `--raw` llaman a un modelo, y ni siquiera esos lo hacen cuando manejas el CLI desde un agente por MCP.
 
-**It reads your project, not its own assumptions.** It walks up from the working directory to find `package.json`, honours `sourceRoot` from `nest-cli.json` when present, and parses the `.d.ts` of the `ddd-lib` **you** have installed with the TypeScript compiler API. Ask it about a version it has never seen and it answers correctly.
+**Lee tu proyecto, no sus propias suposiciones.** Sube desde el directorio de trabajo hasta encontrar `package.json`, respeta el `sourceRoot` de `nest-cli.json` si existe, y parsea los `.d.ts` del `ddd-lib` que **tú** tienes instalado con la API del compilador de TypeScript. Pregúntale por una versión que nunca ha visto y responde correctamente.
 
 ---
 
-## 2. Orient yourself: `ddd list`
+## 2. Orientarse: `ddd list`
 
-Before writing anything, find out what the library actually offers.
+Antes de escribir nada, averigua qué ofrece realmente la librería.
 
 ```bash
 npx ddd list
 ```
 
-The header is the important part, and it is the thing most people get wrong about this library:
+La cabecera es la parte importante, y es justo lo que más gente entiende mal de esta librería:
 
 ```
   extend     subclass it
@@ -51,7 +53,9 @@ The header is the important part, and it is the thing most people get wrong abou
   use        call it directly
 ```
 
-Sixty-six symbols follow, grouped by family. Filter to make it useful:
+Es decir: **extender** (heredas de ella), **implementar** (cumples la interfaz), **componer** (el agregado delega en ella) y **usar** (la llamas directamente).
+
+Detrás vienen sesenta y seis símbolos, agrupados por familia. Filtra para que sea útil:
 
 ```bash
 npx ddd list --family value
@@ -70,7 +74,7 @@ npx ddd list --family value
   7 symbols · ddd explain <name> for any of them
 ```
 
-### The `compose` list is the one to read first
+### La lista de `compose` es la primera que hay que leer
 
 ```bash
 npx ddd list --role compose
@@ -94,19 +98,19 @@ npx ddd list --role compose
   8 symbols · ddd explain <name> for any of them
 ```
 
-These eight are **collaborators your aggregate already holds** — `aggregate.brokenRules`, `aggregate.validators`, `aggregate.trackingState`. They are not base classes. Trying to subclass one is the most common wrong turn, and the CLI will stop you (see [Troubleshooting](#10-troubleshooting)).
+Esos ocho son **colaboradores que tu agregado ya tiene** — `aggregate.brokenRules`, `aggregate.validators`, `aggregate.trackingState`. No son clases base. Intentar heredar de uno es el desvío equivocado más común, y el CLI te para (ver [Cuando algo no sale](#10-cuando-algo-no-sale)).
 
-`--family` accepts `validation`, `value`, `aggregate`, `event`. `--role` accepts `extend`, `implement`, `compose`, `use`. They combine.
+`--family` acepta `validation`, `value`, `aggregate`, `event`. `--role` acepta `extend`, `implement`, `compose`, `use`. Se combinan.
 
 ---
 
-## 3. Read a contract: `ddd explain`
+## 3. Leer un contrato: `ddd explain`
 
 ```bash
 npx ddd explain StringValueObject --raw
 ```
 
-`--raw` prints the declaration and its documentation with **no model involved** — instant, free, and exactly what your installed version says:
+`--raw` imprime la declaración y su documentación **sin modelo de por medio** — instantáneo, gratis, y exactamente lo que dice tu versión instalada:
 
 ```
   class StringValueObject extends DddValueObject
@@ -122,15 +126,15 @@ npx ddd explain StringValueObject --raw
   ...
 ```
 
-Without `--raw` the CLI asks a model to explain it in context, which needs a provider. Use `--raw` in a loop; use the model when you are genuinely stuck.
+Sin `--raw`, el CLI le pide a un modelo que lo explique en contexto, lo que exige un proveedor. Usa `--raw` mientras trabajas; deja el modelo para cuando estés genuinamente atascado.
 
 ---
 
-## 4. Build the graph: `ddd new`
+## 4. Construir el grafo: `ddd new`
 
-Six stereotypes: `value-object`, `validator`, `event`, `exception`, `aggregate`, `enum`.
+Seis estereotipos: `value-object`, `validator`, `event`, `exception`, `aggregate`, `enum`.
 
-### Look before you write
+### Mira antes de escribir
 
 ```bash
 npx ddd new value-object TrackingId --dry-run
@@ -144,9 +148,9 @@ npx ddd new value-object TrackingId --dry-run
   Dry run: nothing was written.
 ```
 
-Without `--dry-run` you get the same preview and a `y/N` prompt. `-y` skips it — use that in scripts, not while learning. **Existing files are never overwritten** unless you pass `--force`.
+Sin `--dry-run` obtienes la misma vista previa y una pregunta `y/N`. `-y` se la salta — úsalo en scripts, no mientras aprendes. **Los ficheros existentes no se sobrescriben nunca** salvo que pases `--force`.
 
-### The identity of a cargo
+### La identidad de un envío
 
 ```bash
 npx ddd new value-object TrackingId -y
@@ -154,7 +158,7 @@ npx ddd new value-object UnLocode -y
 npx ddd new value-object GrossWeight --kind number -y
 ```
 
-`--kind number` picks `NumberValueObject` as the base instead of `StringValueObject`. Here is what the last one produced, unedited:
+`--kind number` elige `NumberValueObject` como base en lugar de `StringValueObject`. Esto es lo que produjo el último, sin editar:
 
 ```ts
 import {
@@ -202,21 +206,21 @@ export class GrossWeight extends NumberValueObject {
 }
 ```
 
-Three things are worth noticing, because they are the three mistakes this library makes easy:
+Tres cosas merecen atención, porque son los tres errores que esta librería hace fáciles:
 
-- `create()` **checks `isValid`**. Validation collects broken rules rather than throwing, so a factory that skips this check returns objects that failed their own invariants.
-- `addValidators()` **calls `super`**. The base registers real rules there; an override that does not chain drops them silently.
-- `load()` exists and does _not_ validate — rehydrating from storage is not the same operation as creating.
+- `create()` **comprueba `isValid`**. La validación recolecta reglas rotas en lugar de lanzar, así que una fábrica que se salta esa comprobación devuelve objetos que incumplen sus propias invariantes.
+- `addValidators()` **llama a `super`**. La base registra reglas reales ahí; un override que no encadena las descarta en silencio.
+- `load()` existe y **no** valida — rehidratar desde almacenamiento no es la misma operación que crear.
 
-The `TODO`s mark what only you can decide. Everything else is already correct.
+Los `TODO` marcan lo que sólo tú puedes decidir. Todo lo demás ya está correcto.
 
-### Rules of their own
+### Reglas propias
 
 ```bash
 npx ddd new validator GrossWeightRules --for GrossWeight -y
 ```
 
-`--for` names the type being audited, which the template needs for its generic parameter and its import:
+`--for` nombra el tipo que se audita, que la plantilla necesita para su parámetro genérico y su import:
 
 ```ts
 import { AbstractRuleValidator } from '@nestjslatam/ddd-lib';
@@ -242,9 +246,9 @@ export class GrossWeightRules extends AbstractRuleValidator<GrossWeight> {
 }
 ```
 
-That comment about inverted conditions is not decoration. `addRules` records what is **wrong**, so every condition reads backwards from an assertion. Getting this backwards produces a validator that passes exactly when it should fail.
+Ese comentario sobre las condiciones invertidas no es decoración. `addRules` registra lo que está **mal**, así que cada condición se lee al revés de una aserción. Equivocarse aquí produce un validador que pasa exactamente cuando debería fallar.
 
-### The rest of the graph
+### El resto del grafo
 
 ```bash
 npx ddd new aggregate Cargo -y
@@ -260,19 +264,19 @@ npx ddd new exception CargoMisrouted -y
   create  shared/exceptions/cargo-misrouted-exception.ts  exception
 ```
 
-Each line ends with what the file **is**. Check that column before confirming — it is the CLI telling you how it interpreted your request.
+Cada línea acaba con lo que el fichero **es**. Revisa esa columna antes de confirmar — es el CLI diciéndote cómo interpretó tu petición.
 
 ---
 
-## 5. Subclass anything: `ddd extend`
+## 5. Heredar de cualquier cosa: `ddd extend`
 
-`new` covers the six stereotypes people reach for most. `extend` covers **everything else**, including bases the CLI has never seen, because it derives the contract from the installed declarations rather than from a template.
+`new` cubre los seis estereotipos a los que la gente recurre más. `extend` cubre **todo lo demás**, incluidas bases que el CLI no ha visto nunca, porque deriva el contrato de las declaraciones instaladas y no de una plantilla.
 
 ```bash
 npx ddd extend --list
 ```
 
-lists what can be extended. Then:
+lista lo que se puede extender. Después:
 
 ```bash
 npx ddd extend IdValueObject VoyageNumber -D cargo/domain -y
@@ -286,17 +290,17 @@ npx ddd extend IdValueObject VoyageNumber -D cargo/domain -y
   ✓ 1 file(s) written
 ```
 
-`-D` / `--directory` places the file relative to your source root. The kind reported — `value-object` — is derived from what `IdValueObject` inherits, not from its name, so it stays right for a base you wrote yourself.
+`-D` / `--directory` coloca el fichero relativo a tu raíz de fuentes. El tipo que reporta —`value-object`— se deriva de lo que hereda `IdValueObject`, no de su nombre, así que sigue siendo correcto para una base que hayas escrito tú.
 
-Every abstract member of the base is stubbed, with its real signature, including generic parameters resolved against their constraints.
+Cada miembro abstracto de la base queda esbozado, con su firma real, incluidos los parámetros genéricos resueltos contra sus restricciones.
 
 ---
 
-## 6. Catch what the compiler cannot: `ddd validate`
+## 6. Cazar lo que el compilador no ve: `ddd validate`
 
-This is the command that earns the tool its place. Four rules, each a mistake that produces **no compiler error and no runtime exception** — just silently wrong behaviour.
+Éste es el comando que le gana su sitio a la herramienta. Cuatro reglas, cada una un error que **no produce error de compilación ni excepción en ejecución** — sólo comportamiento silenciosamente equivocado.
 
-Here is a `RouteSpecification` written the way people actually write one the first time:
+Aquí hay una `RouteSpecification` escrita como la escribe la gente la primera vez:
 
 ```ts
 export class RouteSpecification extends StringValueObject {
@@ -320,7 +324,7 @@ export class RouteSpecification extends StringValueObject {
 }
 ```
 
-It compiles. It is broken three ways.
+Compila. Y está mal de tres formas.
 
 ```bash
 npx ddd validate
@@ -349,25 +353,25 @@ npx ddd validate
   2 errors · 1 warning
 ```
 
-Exit code `1`, so it gates a pipeline.
+Código de salida `1`, así que sirve de puerta en un pipeline.
 
-The third finding is the one worth dwelling on. `this.deadline` is assigned in the constructor body, but the **base constructor calls `addValidators()` before that body runs** — so it is `undefined` at that moment and every construction throws. This is not hypothetical: it is exactly how `NumberValueObject` shipped broken through two releases of `ddd-lib` itself.
+El tercer hallazgo es en el que vale la pena detenerse. `this.deadline` se asigna en el cuerpo del constructor, pero **el constructor base llama a `addValidators()` antes de que ese cuerpo se ejecute** — así que en ese momento es `undefined` y cada construcción lanza. No es hipotético: es exactamente cómo `NumberValueObject` se publicó roto durante dos versiones del propio `ddd-lib`.
 
-### The fourth rule
+### La cuarta regla
 
-`handler-commits-events` catches a CQRS handler that mutates an aggregate without `mergeObjectContext(...).commit()`. An aggregate _collects_ its domain events; only that call dispatches them. Without it the command succeeds, returns cleanly, and every downstream handler is silently skipped.
+`handler-commits-events` caza un handler de CQRS que modifica un agregado sin `mergeObjectContext(...).commit()`. Un agregado **recolecta** sus eventos de dominio; sólo esa llamada los despacha. Sin ella, el comando triunfa, devuelve limpiamente, y todos los manejadores de abajo se saltan en silencio.
 
-### And the migration check
+### Y la comprobación de migración
 
-`validate` also reads how **your installed version** declares `isValid` and reports every mismatched call site:
+`validate` también lee cómo declara `isValid` **tu versión instalada** y señala cada llamada que no cuadra:
 
 ```
 error  3  Order.create() calls isValid(), but the installed library declares it as a getter
 ```
 
-`ddd-lib` 3.0.0 made `isValid` a getter on every base. For TypeScript the compiler finds these (`TS6234`); for JavaScript consumers this is the only mechanical way to find them.
+`ddd-lib` 3.0.0 convirtió `isValid` en getter en todas las bases. Para TypeScript el compilador las encuentra (`TS6234`); para quien consume desde JavaScript, ésta es la única forma mecánica de encontrarlas.
 
-### Fixed
+### Arreglado
 
 ```ts
 export class RouteSpecification extends StringValueObject {
@@ -391,7 +395,7 @@ export class RouteSpecification extends StringValueObject {
 }
 ```
 
-The deadline moved out of the value object entirely — a constructor parameter that a validator needs cannot be read during `addValidators()`, so it belongs on the aggregate that composes this one.
+La fecha límite salió del value object por completo — un parámetro de constructor que un validador necesita no se puede leer durante `addValidators()`, así que su sitio es el agregado que compone a éste.
 
 ```bash
 npx ddd validate
@@ -401,11 +405,11 @@ npx ddd validate
   ✓ No idiom violations found.
 ```
 
-`--strict` makes warnings fail too. In CI, that is usually what you want.
+`--strict` hace que los avisos también fallen. En CI, suele ser lo que quieres.
 
-### The whole graph, type-checked
+### El grafo entero, con los tipos comprobados
 
-Ten files, none hand-edited beyond the `RouteSpecification` shown above:
+Diez ficheros, ninguno editado a mano más allá de la `RouteSpecification` de arriba:
 
 ```
 src/cargo/domain/cargo-aggregate/cargo.ts
@@ -426,16 +430,16 @@ npx tsc --noEmit    # exit 0
 
 ---
 
-## 7. Hand it to an AI agent: `ddd mcp`
+## 7. Dárselo a un agente de IA: `ddd mcp`
 
-If you already work inside Claude Code, Codex or Cursor, that agent has a model and credentials. The CLI does not need its own.
+Si ya trabajas dentro de Claude Code, Codex o Cursor, ese agente tiene modelo y credenciales. El CLI no necesita los suyos.
 
 ```bash
 claude mcp add ddd -- npx -y @nestjslatam/ddd-cli mcp
 ```
 
 ```jsonc
-// any other MCP client
+// cualquier otro cliente MCP
 {
   "mcpServers": {
     "ddd": { "command": "npx", "args": ["-y", "@nestjslatam/ddd-cli", "mcp"] },
@@ -443,7 +447,7 @@ claude mcp add ddd -- npx -y @nestjslatam/ddd-cli mcp
 }
 ```
 
-Seven tools appear, with **no API key**:
+Aparecen siete herramientas, **sin clave de API**:
 
 ```
   ddd_list                 Inventory every stereotype exported by the installed library
@@ -455,58 +459,58 @@ Seven tools appear, with **no API key**:
   ddd_render_aggregate     Turn an aggregate specification into a full set of files
 ```
 
-**The division of labour is the point.** The agent decides the aggregate boundary, the invariants and the naming — judgement. The CLI does what a model is bad at: reading the installed declarations exactly, rendering deterministically, and auditing against the idiom.
+**El reparto de trabajo es lo importante.** El agente decide la frontera del agregado, las invariantes y los nombres — criterio. El CLI hace lo que un modelo hace mal: leer las declaraciones instaladas con exactitud, renderizar de forma determinista y auditar contra el idioma.
 
-`ddd_describe` deliberately returns facts rather than prose; the agent writes the explanation, which is what it is for. `ddd_aggregate_schema` and `ddd_render_aggregate` make the split explicit — the agent produces a specification, the CLI renders it, and a specification that fails the schema comes back with per-field issues so the agent corrects itself without a human in the loop.
+`ddd_describe` devuelve hechos y no prosa a propósito; la explicación la escribe el agente, que para eso está. `ddd_aggregate_schema` y `ddd_render_aggregate` hacen el reparto explícito — el agente produce una especificación, el CLI la renderiza, y una especificación que no cumple el esquema vuelve con los problemas campo por campo, así que el agente se corrige solo sin que haya nadie mirando.
 
-**Nothing reaches disk unless a call passes `write: true`**, and even then existing files are never overwritten. An agent working unattended must not clobber hand-edited domain code.
+**Nada llega al disco salvo que una llamada pase `write: true`**, y aun así los ficheros existentes no se sobrescriben nunca. Un agente trabajando sin supervisión no debe pisar código de dominio escrito a mano.
 
-### A prompt that works
+### Un prompt que funciona
 
-> Read the `ddd-lib` I have installed, then model a Cargo aggregate for a shipping domain: a tracking id, a route specification with origin and destination, a gross weight, and a current voyage. Validate what you write before you show me.
+> Lee el `ddd-lib` que tengo instalado y modela un agregado Cargo para un dominio de transporte marítimo: un identificador de seguimiento, una especificación de ruta con origen y destino, un peso bruto y un viaje actual. Valida lo que escribas antes de enseñármelo.
 
-The agent will call `ddd_list`, `ddd_describe`, `ddd_aggregate_schema`, `ddd_render_aggregate` and `ddd_validate` in whatever order it needs.
+El agente llamará a `ddd_list`, `ddd_describe`, `ddd_aggregate_schema`, `ddd_render_aggregate` y `ddd_validate` en el orden que necesite.
 
 ---
 
-## 8. Model from prose: `ddd generate:aggregate`
+## 8. Modelar desde prosa: `ddd generate:aggregate`
 
-The one command that needs a model of its own.
+El único comando que necesita un modelo propio.
 
 ```bash
-export ANTHROPIC_API_KEY=...        # or OPENAI_API_KEY
+export ANTHROPIC_API_KEY=...        # o OPENAI_API_KEY
 npx ddd generate:aggregate "A cargo has a tracking id, a route from an origin to a destination, and a gross weight in kilograms. The weight must be positive and no more than 30000. A cargo cannot be routed twice." --dry-run
 ```
 
-It produces the aggregate root, its props interface, its validators and its events — then you review the preview before anything is written. `--provider` picks `anthropic` or `openai`; `--model` overrides the default.
+Produce la raíz del agregado, su interfaz de props, sus validadores y sus eventos — y después revisas la vista previa antes de que se escriba nada. `--provider` elige entre `anthropic` y `openai`; `--model` cambia el predeterminado.
 
-**If you already work in an agent, do not use this command.** Use MCP (section 7): the agent's own model does the modelling, you need no second set of credentials, and you can iterate conversationally.
+**Si ya trabajas dentro de un agente, no uses este comando.** Usa MCP (sección 7): el modelo del propio agente hace el modelado, no necesitas un segundo juego de credenciales, y puedes iterar conversando.
 
-Its output is the only non-deterministic thing the CLI produces. Run `ddd validate` on the result — the CLI checks its own homework.
+Su salida es lo único no determinista que produce el CLI. Ejecuta `ddd validate` sobre el resultado — la herramienta corrige sus propios deberes.
 
 ---
 
-## 9. Command reference
+## 9. Referencia de comandos
 
-| Command                            | Alias   | Needs a model        | Key flags                                                                |
+| Comando                            | Alias   | ¿Necesita modelo?    | Opciones principales                                                     |
 | ---------------------------------- | ------- | -------------------- | ------------------------------------------------------------------------ |
 | `ddd list`                         | `ls`    | No                   | `--family <f>`, `--role <r>`                                             |
-| `ddd explain <symbol>`             | `why`   | Only without `--raw` | `--raw`, `--provider`, `--model`                                         |
-| `ddd new <kind> <Name>`            | `n`     | No                   | `--kind string\|number`, `--for <type>`, `--dry-run`, `--force`, `--yes` |
-| `ddd extend <Base> <Name>`         | `x`     | No                   | `--directory <path>`, `--list`, `--dry-run`, `--force`, `--yes`          |
-| `ddd validate [path]`              | `check` | No                   | `--strict`                                                               |
-| `ddd generate:aggregate "<prose>"` | `ga`    | **Yes**              | `--provider`, `--model`, `--dry-run`, `--force`, `--yes`                 |
+| `ddd explain <símbolo>`            | `why`   | Sólo sin `--raw`     | `--raw`, `--provider`, `--model`                                         |
+| `ddd new <tipo> <Nombre>`          | `n`     | No                   | `--kind string\|number`, `--for <tipo>`, `--dry-run`, `--force`, `--yes` |
+| `ddd extend <Base> <Nombre>`       | `x`     | No                   | `--directory <ruta>`, `--list`, `--dry-run`, `--force`, `--yes`          |
+| `ddd validate [ruta]`              | `check` | No                   | `--strict`                                                               |
+| `ddd generate:aggregate "<prosa>"` | `ga`    | **Sí**               | `--provider`, `--model`, `--dry-run`, `--force`, `--yes`                 |
 | `ddd mcp`                          | —       | No                   | —                                                                        |
 
-`new` stereotypes: `value-object`, `validator`, `event`, `exception`, `aggregate`, `enum`.
+Estereotipos de `new`: `value-object`, `validator`, `event`, `exception`, `aggregate`, `enum`.
 
-Exit codes: `0` clean, `1` violations found or command failed. `validate` is safe to put in CI as-is.
+Códigos de salida: `0` limpio, `1` violaciones encontradas o comando fallido. `validate` se puede poner en CI tal cual.
 
 ---
 
-## 10. Troubleshooting
+## 10. Cuando algo no sale
 
-**"X is not a base class"**
+**«X is not a base class»**
 
 ```
   Error  BrokenRulesManager is not a base class.
@@ -517,9 +521,9 @@ Exit codes: `0` clean, `1` violations found or command failed. `validate` is saf
   Run `ddd list --role extend` to see what can be extended.
 ```
 
-Working as intended. `compose` symbols are held, not subclassed — your aggregate already has `brokenRules`, `validators` and `trackingState`.
+Funciona como debe. Los símbolos de `compose` se tienen, no se heredan — tu agregado ya dispone de `brokenRules`, `validators` y `trackingState`.
 
-**A typo in a symbol name**
+**Un nombre de símbolo con una errata**
 
 ```
   Error  No symbol named "DddAgregateRoot" in @nestjslatam/ddd-lib.
@@ -527,27 +531,28 @@ Working as intended. `compose` symbols are held, not subclassed — your aggrega
   Did you mean: DddAggregateRoot?
 ```
 
-**`ddd list` shows a version I do not expect.** It reads the `ddd-lib` resolved from your working directory. Outside a project it falls back to the copy bundled with the CLI. Run it from inside your project.
+**`ddd list` muestra una versión que no esperaba.** Lee el `ddd-lib` que se resuelve desde tu directorio de trabajo. Fuera de un proyecto recurre a la copia que trae el propio CLI. Ejecútalo desde dentro de tu proyecto.
 
-**Files were written where I did not expect.** The CLI honours `sourceRoot` from `nest-cli.json`. Without that file it assumes `src`. Use `--dry-run` first, always — the preview shows the exact paths.
+**Los ficheros se escribieron donde no esperaba.** El CLI respeta el `sourceRoot` de `nest-cli.json`. Sin ese fichero asume `src`. Usa `--dry-run` primero, siempre — la vista previa muestra las rutas exactas.
 
-**`validate` reports nothing on a file I know is wrong.** It parses TypeScript; check the path argument, and note that it audits `src` by default. Pass a path explicitly to widen or narrow it.
+**`validate` no reporta nada en un fichero que sé que está mal.** Parsea TypeScript; comprueba el argumento de ruta, y ten en cuenta que audita `src` por defecto. Pasa una ruta explícita para ampliar o acotar.
 
 ---
 
-## Where to go next
+## Por dónde seguir
 
-- [`@nestjslatam/ddd-lib`](https://github.com/nestjslatam/ddd) — the library this tool reads
-- [`@nestjslatam/ddd-valueobjects`](https://github.com/nestjslatam/ddd-valueobjects) — ready-made value objects, so you scaffold fewer
-- [`@nestjslatam/ddd-es-lib`](https://github.com/nestjslatam/ddd-event-sourcing) — event sourcing, if your aggregates need replay
-- [CHANGELOG](../CHANGELOG.md) — every release and why
+- [`@nestjslatam/ddd-lib`](https://github.com/nestjslatam/ddd) — la librería que esta herramienta lee
+- [`@nestjslatam/ddd-valueobjects`](https://github.com/nestjslatam/ddd-valueobjects) — value objects ya hechos, para andamiar menos
+- [`@nestjslatam/ddd-es-lib`](https://github.com/nestjslatam/ddd-event-sourcing) — event sourcing, si tus agregados necesitan reproducirse
+- [Documentación completa](https://docs.nestjslatam.dev) — la guía de la librería, en español
+- [CHANGELOG](../CHANGELOG.md) — cada versión y su porqué
 
 ---
 
 <div align="center">
 
-**Powered by [BeyondNetCode](https://beyondnet.info/)**
+**Impulsado por [BeyondNetCode](https://beyondnet.info/)**
 
-[Website](https://beyondnet.info/) · [GitHub](https://github.com/beyondnetcode) · [NestJS Latam](https://nestjslatam.dev/)
+[Web](https://beyondnet.info/) · [GitHub](https://github.com/beyondnetcode) · [NestJS Latam](https://nestjslatam.dev/)
 
 </div>
