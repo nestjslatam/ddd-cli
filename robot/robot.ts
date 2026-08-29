@@ -9,7 +9,7 @@ import { SUITES } from './scenarios';
 import { Expectation, Result, Scenario } from './types';
 
 const CLI = resolve(__dirname, '..', 'dist', 'main.js');
-const LIB_VERSION = process.env.ROBOT_LIB_VERSION ?? '2.1.2';
+const LIB_VERSION = process.env.ROBOT_LIB_VERSION ?? '3.0.0';
 
 /** Whether a live model is reachable. Decides skip vs run, never pass. */
 const hasModelCredentials = (): boolean =>

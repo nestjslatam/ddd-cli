@@ -15,7 +15,7 @@ on:
       lib_version:
         description: 'Version of @nestjslatam/ddd-lib to test against'
         required: false
-        default: '2.1.2'
+        default: '3.0.0'
 
 env:
   NODE_VERSION: '20'
@@ -42,7 +42,7 @@ jobs:
         # as skipped rather than passing.
         run: npm run robot:json
         env:
-          ROBOT_LIB_VERSION: ${{ inputs.lib_version || '2.1.2' }}
+          ROBOT_LIB_VERSION: ${{ inputs.lib_version || '3.0.0' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Upload the report
