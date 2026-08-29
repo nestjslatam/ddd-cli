@@ -69,18 +69,18 @@ describe('ArtifactGeneratorService', () => {
     );
   });
 
-  it('calls isValid() on the aggregate rather than reading it', () => {
-    // isValid is a method on DddAggregateRoot and a getter on DddValueObject.
-    // Reading the method tests a function -- always truthy -- so the guard
-    // never fires and create() returns objects that failed their invariants.
+  it('reads isValid on the aggregate, matching the unified contract', () => {
+    // ddd-lib 3.0.0 unified both bases on a getter. Before that the aggregate
+    // declared a method, and emitting the property form here produced a guard
+    // that could never fire.
     const aggregate = generator
       .generate(orderSpec)
       .find((a) => a.path === 'order/domain/order-aggregate/order.ts')!;
 
-    expect(aggregate.contents).toContain('if (!order.isValid())');
+    expect(aggregate.contents).toContain('if (!order.isValid)');
   });
 
-  it('reads isValid as a property on value objects', () => {
+  it('reads isValid the same way on value objects', () => {
     const valueObject = generator
       .generate(orderSpec)
       .find((a) => a.path === 'shared/valueobjects/order-total.ts')!;
