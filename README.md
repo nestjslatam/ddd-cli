@@ -1,179 +1,250 @@
-# @nestjslatam/ddd-cli
+<div align="center">
 
-A command-line tool for `@nestjslatam/ddd-lib`: inventory its stereotypes, scaffold them, subclass them, audit your code against its idiom, and model an aggregate from prose. It also runs as an MCP server, so an agent drives it with its own model.
+# `@nestjslatam/ddd-cli`
 
-[![npm](https://img.shields.io/npm/v/%40nestjslatam%2Fddd-cli.svg)](https://www.npmjs.com/package/@nestjslatam/ddd-cli) [![CI](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml)
+**Understand, scaffold and audit [`@nestjslatam/ddd-lib`](https://github.com/nestjslatam/ddd) — from your terminal, or from the AI agent you already use.**
 
-> [!WARNING]
-> **Pre-1.0.** `0.3.0` is under active development; the surface can change in any minor release, so pin an exact version.
+[![npm](https://img.shields.io/npm/v/%40nestjslatam%2Fddd-cli?color=1e73be&label=ddd-cli)](https://www.npmjs.com/package/@nestjslatam/ddd-cli)
+[![CI](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml)
+[![tests](https://img.shields.io/badge/tests-80%20unit%20%2B%2051%20acceptance-00d084)](#tests-and-the-robot)
+[![no api key](https://img.shields.io/badge/API%20key-not%20required-00d084)](#driving-it-from-an-ai-agent)
+[![license](https://img.shields.io/badge/license-MIT-575760)](LICENSE)
+
+[Why](#why) · [Commands](#commands) · [MCP](#driving-it-from-an-ai-agent) · [FAQ](#faq) · [Contributing](#contributing)
+
+</div>
+
+---
 
 ```bash
-npm install -g @nestjslatam/ddd-cli
+npm install -D @nestjslatam/ddd-cli
 ```
+
+## Why
+
+Most scaffolding CLIs hardcode a template and hope it still matches the library. This one **reads the `.d.ts` files of the `ddd-lib` installed in your project** with the TypeScript compiler API. Ask it about `DddAggregateRoot` and it describes _your_ version — including a version it has never seen, and including a base you added to your own fork.
 
 ```bash
-ddd list --role extend                        # what the installed library lets you subclass
-ddd new value-object OrderTotal --kind number # scaffold one, no model involved
-ddd validate                                  # audit what you wrote against the idiom
+npx ddd list
 ```
 
-`ddd list` reads the `.d.ts` files of the `@nestjslatam/ddd-lib` installed in your project with the TypeScript compiler, so it reports what is actually there rather than a table kept in this CLI. Against `ddd-lib@2.1.2`:
-
 ```
+  extend     subclass it
+  implement  satisfy the interface
+  compose    the aggregate delegates to it
+  use        call it directly
+
+  Aggregates
+  compose    AggregateValidationOrchestrator
+  extend     DddAggregateRoot                 extends AggregateRoot
+
   Value Objects
-  extend     DddValueObject  extends AbstractNotifyPropertyChanged · implement getEqualityComponents
-
-  Validation & Business Rules
-  extend     AbstractRuleValidator  implement addRules
-  extend     AbstractValidator      implement validate
-
-  Domain Events
-  extend     AbstractDomainEvent  alias of DomainEvent
-
-  9 symbols · ddd explain <name> for any of them
+  extend     DddValueObject            extends AbstractNotifyPropertyChanged · implement getEqualityComponents
+  extend     IdValueObject             extends DddValueObject
+  extend     NumberValueObject         extends DddValueObject
+  …
+  66 symbols · ddd explain <name> for any of them
 ```
 
-(Abridged. Aliases are resolved; `-f, --family` and `-r, --role` narrow the list, and `ddd explain <symbol> --raw` prints one declaration with no model call.)
+That four-way split is most of what there is to understand about the design. `compose` is the one people get wrong: `BrokenRulesManager`, `ValidatorRuleManager` and `TrackingStateManager` are collaborators an aggregate _holds_, not bases you subclass.
 
-## The ecosystem
+## Commands
 
-| Package                                                                                        | What it is                                                                                                                                 |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`@nestjslatam/ddd-lib`](https://www.npmjs.com/package/@nestjslatam/ddd-lib)                   | DDD building blocks: aggregates, value objects, validators, broken rules, state tracking                                                   |
-| **[`@nestjslatam/ddd-cli`](https://www.npmjs.com/package/@nestjslatam/ddd-cli)**               | Inventory the stereotypes, scaffold them, subclass them, audit your code. Runs as an MCP server so an AI agent can drive it — you are here |
-| [`@nestjslatam/ddd-valueobjects`](https://www.npmjs.com/package/@nestjslatam/ddd-valueobjects) | Ready-made value objects: email, phone number, money, date range, document id                                                              |
-| [`@nestjslatam/ddd-es-lib`](https://www.npmjs.com/package/@nestjslatam/ddd-es-lib)             | Event sourcing: event store, snapshots, upcasting, sagas, materialised views                                                               |
+| Command                            | What it does                                                            | Uses a model? |
+| ---------------------------------- | ----------------------------------------------------------------------- | ------------- |
+| `ddd list`                         | Every stereotype, grouped, with its role                                | No            |
+| `ddd explain <name>`               | One symbol: contract, what to implement, an example                     | Optional      |
+| `ddd new <kind> <Name>`            | Scaffold a value object, validator, event, exception, aggregate or enum | No            |
+| `ddd extend <Base> <Name>`         | Subclass any base, with the abstract members stubbed                    | No            |
+| `ddd validate`                     | Audit your code against four idiom rules                                | No            |
+| `ddd generate:aggregate "<prose>"` | Model an aggregate from a description                                   | **Yes**       |
+| `ddd mcp`                          | Run as an MCP server for an AI agent                                    | No            |
 
-## Requirements
+Five of the seven never touch a model.
 
-- Node 20.11 or later (`engines` in the manifest; CI runs 20.x and 22.x).
-- A project with `@nestjslatam/ddd-lib` installed. The CLI prefers your project's copy and falls back to the one it ships as a runtime dependency, so what it reports tracks the version you actually depend on. Commands still run without it; `generate:aggregate` warns that the output will not compile until you install it.
-- `@nestjs/cqrs`, a peer dependency of `ddd-lib`, for the generated command handlers and modules to compile.
-- `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` for `explain` and `generate:aggregate` only. `list`, `new`, `extend`, `validate`, `explain --raw` and `mcp` never call a model.
-
-The CLI walks up from the working directory to find `package.json`, and honours `sourceRoot` from `nest-cli.json` when one is present.
-
-## Scaffolding
+### Scaffolding
 
 ```bash
-ddd new value-object OrderTotal --kind number  # → shared/valueobjects/order-total.ts
-ddd new validator OrderTotalRules --for OrderTotal
-ddd new event OrderPlaced                      # → OrderPlacedEvent, with fromJSON for replay
-ddd new exception OrderClosed                  # → OrderClosedException
-ddd new aggregate Order
-ddd new enum OrderStatus
+npx ddd new value-object OrderTotal --kind number
+npx ddd new validator OrderTotalRules --for OrderTotal
+npx ddd extend AbstractRuleValidator ShippingRules
 ```
 
-No model is involved. These have one correct shape, taken from the library's own code, and every template passes `ddd validate`: a factory that checks `isValid` where the stereotype has one, an `addValidators()` that chains to `super` wherever the base actually registers rules, and events that carry primitives only.
+`extend` derives the contract from the installed declarations, so it works for bases it has never seen. **Nothing is written before you see the file list and confirm** — the preview names the path and what each file is:
 
-Subclassing works against whatever the installed library reports as a base:
+```
+  Sku extends StringValueObject
+
+  Files under src
+  create  shared/valueobjects/sku.ts  value-object
+
+  1 new · 0 already present
+  Write this file? (y/N)
+```
+
+Everything `ddd new` emits **passes `ddd validate`**. The templates are not merely plausible; they satisfy the tool's own audit.
+
+Point it at something that is not a base class and it teaches rather than errors:
+
+```
+  BrokenRulesManager is not a base class.
+
+  BrokenRulesManager is a collaborator: an aggregate or value object holds
+  one and delegates to it, rather than subclassing it.
+
+  Run `ddd list --role extend` to see what can be extended.
+```
+
+### Auditing
 
 ```bash
-ddd extend --list
-ddd extend AbstractRuleValidator OrderTotalRules
-ddd extend DddValueObject Coordinates
+npx ddd validate
 ```
 
-Whatever the introspector reports as abstract becomes a stub, so this keeps working for a base the command has never heard of. Asking to extend something that is not a base explains the distinction — `ddd extend BrokenRulesManager Foo` answers that it is a collaborator an aggregate holds and delegates to, rather than one to subclass.
+Four rules, each a mistake `ddd-lib` makes easy and silent:
 
-## Auditing
+| Rule                                  | Catches                                                                                                                 |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `no-subclass-state-in-add-validators` | Reading a subclass field inside `addValidators()`, which the base constructor calls _before_ your constructor body runs |
+| `super-add-validators`                | An override that does not chain, dropping the base's real validators                                                    |
+| `factory-checks-validity`             | A `create()` that never checks `isValid`, so invalid objects escape                                                     |
+| `handler-commits-events`              | A handler without `mergeObjectContext(...).commit()`, so no event is ever dispatched                                    |
 
-```bash
-ddd validate            # the whole source root
-ddd validate src/orders # or one path
-ddd validate --strict   # fail on warnings too
-```
+The first is not hypothetical: it is exactly how `NumberValueObject` shipped broken through two releases of the library.
 
-| Rule                                  | Severity | Why it matters                                                                                                                                                                                 |
-| ------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `super-add-validators`                | error    | `StringValueObject`, `NumberValueObject` and `IdValueObject` register real validators in `addValidators()`. An override that does not chain drops them, and invalid values pass with no error. |
-| `no-subclass-state-in-add-validators` | error    | The base constructor calls `addValidators()` before the subclass constructor body runs, so reading a field assigned there throws on every construction.                                        |
-| `factory-checks-validity`             | warning  | Validation collects broken rules rather than throwing, so a `create()` that never checks `isValid` can hand back an object that failed its own invariants.                                     |
-| `handler-commits-events`              | warning  | An aggregate collects its domain events; only `mergeObjectContext(...).commit()` dispatches them. Without it the command succeeds and every downstream handler is silently skipped.            |
-
-Exit code is 1 when errors are found, 1 on warnings alone under `--strict`, and 0 when nothing is reported — so it can gate a build.
-
-## Modelling an aggregate from prose
-
-```bash
-ddd generate:aggregate "An order has a customer name and a total. \
-  The total must be positive and cannot exceed 1,000,000."
-```
-
-The model never writes TypeScript. It reads the prose and returns a specification, the specification is parsed against a zod schema, and deterministic renderers turn it into files. The same spec always produces the same bytes, and a provider that drifts fails on the parse rather than emitting code that does not compile.
-
-From a spec with one value object, one event, one command and one aggregate invariant, the renderers emit 14 files:
+`validate` also reports **`isValid` call sites that do not match your installed version** — a getter since `ddd-lib` 3.0.0. That is the mechanical part of the 2.x → 3.0.0 migration:
 
 ```
-order/order.module.ts                                            CqrsModule imported, handlers registered
-order/domain/order-aggregate/order.ts                            extends DddAggregateRoot
-order/domain/order-aggregate/validators/order-invariants.validator.ts
-order/domain/order-aggregate/events/order-placed.ts              extends AbstractDomainEvent
-order/application/use-cases/place-order/place-order.command.ts
-order/application/use-cases/place-order/place-order.command-handler.ts
-order/infrastructure/repositories/order.repository.ts            in-memory, ready to swap
-shared/valueobjects/order-total.ts                               extends NumberValueObject
-shared/valueobjects/validators/order-total-rules.validator.ts    extends AbstractRuleValidator
+error  3  Order.create() calls isValid(), but the installed library declares it as a getter
 ```
-
-plus an `index.ts` barrel in five of them -- the aggregate folder, its `events/` and `validators/`, and `shared/valueobjects/` and its `validators/`. The module root, the use-case folder and `infrastructure/repositories/` get none. As with `ddd new`, the full file list is previewed and confirmed (`Write these files? (y/N)`) before anything lands, and existing files are reported as `exists` and left untouched unless you pass `--force`.
-
-| Flag                  | Effect                                      |
-| --------------------- | ------------------------------------------- |
-| `-p, --provider <id>` | `anthropic` or `openai`                     |
-| `-m, --model <id>`    | Override the provider's default model       |
-| `-d, --dry-run`       | Show what would be generated, write nothing |
-| `-f, --force`         | Overwrite files that already exist          |
-| `-y, --yes`           | Skip the confirmation prompt                |
-
-`anthropic` defaults to `claude-opus-5` and accepts `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or an `ANTHROPIC_PROFILE`; `openai` defaults to `gpt-5` and reads `OPENAI_API_KEY`. Whichever credential is present is picked automatically, Anthropic first.
 
 ## Driving it from an AI agent
 
-If you already work inside an agent, it has a model and credentials; a second set for this CLI is redundant. Register it as an MCP server instead:
+If you already work in Claude Code, Codex or Cursor, that agent has a model and credentials. The CLI does not need its own.
 
 ```bash
 claude mcp add ddd -- npx -y @nestjslatam/ddd-cli mcp
-# any other client: {"mcpServers":{"ddd":{"command":"npx","args":["-y","@nestjslatam/ddd-cli","mcp"]}}}
 ```
 
-Seven tools become available, and no API key is involved: `ddd_list`, `ddd_describe`, `ddd_new`, `ddd_extend`, `ddd_validate`, `ddd_aggregate_schema` and `ddd_render_aggregate`. The last two are the division of labour — the agent decides aggregate boundaries, which concepts deserve value objects and what the invariants are; the CLI renders the result deterministically, and a spec that fails the schema comes back with per-field issues so the agent can correct itself.
+```jsonc
+// any other MCP client
+{
+  "mcpServers": {
+    "ddd": { "command": "npx", "args": ["-y", "@nestjslatam/ddd-cli", "mcp"] },
+  },
+}
+```
 
-Nothing is written unless a call passes `write: true`, and even then existing files come back under `skippedBecauseTheyExist` rather than being overwritten. MCP is JSON-RPC over stdout, so `ddd mcp` prints nothing of its own and silences the NestJS logger: one stray line corrupts the stream and the client drops the connection.
+Seven tools, **no API key**: `ddd_list`, `ddd_describe`, `ddd_new`, `ddd_extend`, `ddd_validate`, `ddd_aggregate_schema`, `ddd_render_aggregate`.
 
-## Known limitations
+The division of labour is the point. **The agent decides** the aggregate boundary, the invariants, the naming — judgement. **The CLI does** what a model is bad at: reading the installed declarations exactly, rendering deterministically, and auditing against the idiom. `ddd_describe` returns facts rather than prose on purpose; the agent writes the explanation, which is what it is for.
 
-- **`ddd extend` refuses `StringValueObject`, `NumberValueObject` and `IdValueObject`.** The introspector classifies all three as `use`, so `ddd extend StringValueObject OrderCode` fails with "StringValueObject is meant to be called directly, not subclassed" — even though they are the natural bases for a value object. Use `ddd new value-object <Name> --kind string|number`, which does emit a subclass of them.
-- **The generated repository is in-memory.** A `Map` behind `save`, `findById`, `findAll`, `delete` and `exists`. The signature is what the handlers depend on; replacing the internals is left to you.
-- **`ddd validate` is not a linter.** Four rules and nothing else. It will not tell you an aggregate is doing too little, or that your boundaries are wrong.
-- **Over MCP, files are never overwritten, and there is no way to ask for it.** The CLI's `--force` has no MCP equivalent, by design.
-- **Default model ids are compiled in.** When a provider retires or renames a model, pass `--model` until a release catches up.
-- **`ddd new validator` without `--for` types the validator against `unknown`.** It warns, and generates anyway.
-- **The write preview mislabels two stereotypes.** `ddd new exception` reports its file as `validator` and `ddd new enum` reports its file as `value-object`. Cosmetic only: the paths and file contents are correct.
+`ddd_aggregate_schema` and `ddd_render_aggregate` make the split explicit: the agent produces a specification, the CLI renders it, and a spec that fails the schema comes back with per-field issues so the agent corrects itself without a human in the loop.
 
-## Development
+Nothing reaches disk unless a call passes `write: true`, and even then existing files are never overwritten — an agent acting unattended must not clobber hand-edited domain code.
+
+## Tests and the robot
 
 ```bash
-npm install
-npm test          # 54 tests, 6 suites
-npm run type-check
-npm run build
-npm run robot     # acceptance suite
+npm test        # 80 unit tests, 8 suites
+npm run robot   # 53 acceptance scenarios
 ```
 
-The unit suite checks the pieces; the robot checks the product. It builds a throwaway NestJS project with a real `@nestjslatam/ddd-lib` installed, then drives the built binary as a subprocess across every command, the flags that do not need a live model, and the error paths — running `tsc --noEmit` over what was scaffolded. That is what caught an event template that passed its unit test and then failed to compile, because `DomainEvent` already exposes `aggregateId` and the template redeclared it. Scenarios needing a live model are reported as skipped, never as passing. `ROBOT_JSON=report.json` writes a machine-readable report; `ROBOT_LIB_VERSION` pins the library version to test against.
+The **acceptance robot** is what makes the claims above checkable. It builds a throwaway NestJS project, installs a real `@nestjslatam/ddd-lib` into it, and drives the _built binary as a subprocess_ across every command, flag and error path — then **type-checks the generated code** with `tsc`. Twelve of its scenarios speak MCP over stdio the way a real client does, including an assertion that nothing outside the protocol reaches stdout: MCP is JSON-RPC on that stream, and one stray log line makes a client drop the connection.
 
-CI runs lint, `tsc --noEmit`, the unit suite and a build on Node 20.x and 22.x, then packs the tarball and installs it into a clean project to prove the published artifact runs; the robot is its own workflow. Publishing is driven by a `v*` tag, checked against the manifest version first. Commits follow Conventional Commits; open an [issue](https://github.com/nestjslatam/ddd-cli/issues) before a large change.
+Unit tests never caught the two worst bugs this project has had. The robot did:
+
+- generated mutate handlers referenced an unbound `id`, so every non-create handler failed `tsc`
+- the event template redeclared `aggregateId`, a `TS2610` no unit test was looking for
+
+CI additionally packs the real tarball and installs it into a clean project to prove the published artifact runs — including asserting the `ddd` binary actually got installed.
+
+## FAQ
+
+<details>
+<summary><b>Do I need an Anthropic or OpenAI API key?</b></summary>
+
+**No**, for everything except `ddd generate:aggregate` and `ddd explain --with-model`. `list`, `new`, `extend`, `validate` and `mcp` never contact a model. And over MCP even the modelling is done by _your agent's_ model, so a key is never needed there either.
+</details>
+
+<details>
+<summary><b>Four <code>@nestjslatam</code> packages — which do I install?</b></summary>
+
+[`ddd-lib`](https://github.com/nestjslatam/ddd) is the library and the only runtime dependency you need. This CLI is a **dev** dependency. [`ddd-valueobjects`](https://github.com/nestjslatam/ddd-valueobjects) and [`ddd-es-lib`](https://github.com/nestjslatam/ddd-event-sourcing) are optional add-ons.
+</details>
+
+<details>
+<summary><b>If it runs as an MCP server, why is there still a standalone CLI?</b></summary>
+
+Because CI has no agent. `ddd validate` in a pipeline is the reason the standalone binary exists, and it is the mode with no model in the loop at all — deterministic, exit-code driven.
+</details>
+
+<details>
+<summary><b>Does <code>ddd list</code> report my <code>ddd-lib</code> version, or a table baked into the CLI?</b></summary>
+
+Yours. It resolves `@nestjslatam/ddd-lib` from your project and parses its `.d.ts` with the TypeScript compiler API. Outside a project it falls back to its own bundled copy — `3.0.0` as of `0.3.0`.
+</details>
+
+<details>
+<summary><b>What does this give me over writing the class myself?</b></summary>
+
+For a value object, honestly not much — it is twenty lines. The value is in the parts that are easy to get _silently_ wrong: `extend` stubs the exact abstract members your installed version declares, and `validate` catches four mistakes that produce no error at all, just objects that quietly skip their own invariants.
+</details>
+
+<details>
+<summary><b>Is <code>0.3.0</code> production-ready? What will bite me?</b></summary>
+
+It is pre-1.0 and the surface can move in any minor release, so pin an exact version. Known rough edges: `ddd generate:aggregate` is the only command whose output is not deterministic, and the scaffold writes into a layout inferred from `nest-cli.json` — check the preview before confirming if your project is laid out unusually.
+</details>
+
+<details>
+<summary><b>Will it work with my Node and NestJS version?</b></summary>
+
+Node `>=20.11`; CI runs 20.x and 22.x. It is a dev tool, so it does not constrain your app's NestJS version — but `list`, `explain` and `extend` read the `ddd-lib` you have installed, and `ddd-lib` itself declares NestJS `^10 || ^11`.
+</details>
+
+## Contributing
+
+Concrete work, verifiable in minutes:
+
+1. **More `validate` rules.** The four are in [`src/validate/idiom-rules.ts`](src/validate/idiom-rules.ts); each is a small AST predicate with a test beside it. The library has more silent footguns than four.
+2. **More `new` stereotypes.** [`src/scaffold/stereotype.renderer.ts`](src/scaffold/stereotype.renderer.ts) — repositories, sagas and command handlers are not covered.
+3. **Robot scenarios for the gaps.** Two of the 53 are skipped because they need a live model; anything else missing is a gap worth filling.
+
+Before opening a PR:
+
+```bash
+npm run lint && npm run type-check && npm test && npm run robot
+```
+
+CI runs all of it on Node 20 and 22, plus a tarball install check. Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
+
+## Requirements
+
+Node `>=20.11`. Built with NestJS and [nest-commander](https://nest-commander.jaymcdoniel.dev/); the CLI is a real Nest application, so commands are injectable providers and testable as such.
+
+## Who is behind this
+
+Built and maintained by **[BeyondNet Tech](https://beyondnet.info/)** with the [NestJS Latam](https://nestjslatam.dev/) community.
+
+- **[Evolith](https://github.com/beyondnetcode/evolith_arch32)** — executable architecture governance: a CLI, MCP server and REST API that check a repository against Rego/OPA rules, and report a rule they could not evaluate as a failure rather than a silent pass. The same idea as `ddd validate`, one level up.
+- **[Shell.ddd](https://github.com/beyondnetcode/Shell.ddd)** — the .NET counterpart of `ddd-lib`.
 
 ## More
 
-- [CHANGELOG.md](CHANGELOG.md) — what changed in each release, including why MCP was added alongside the CLI's own model connection rather than in place of it. The direct-API providers remain.
-- [nestjslatam/ddd](https://github.com/nestjslatam/ddd) — the library this CLI introspects and generates against.
+- [`nestjslatam/ddd`](https://github.com/nestjslatam/ddd) — the library this tool reads
+- [CHANGELOG](CHANGELOG.md) — every release and why
 
 ## License
 
-MIT — [`LICENSE`](LICENSE) and `package.json` now agree, as does the copy shipped inside the npm tarball.
+MIT — see [LICENSE](LICENSE). Note that `0.2.0` and earlier shipped a GPL-3.0 file by mistake; a published tarball cannot be amended in place, so upgrade rather than relying on the licence text in an older release.
 
-They did not until this was settled. `package.json` had always declared `MIT`, but the `LICENSE` beside it was the GNU General Public License v3 — unmodified boilerplate, with the copyright holder never filled in, which is what a template default looks like rather than a decision. The two shipped together in the same tarball, and GPL-3.0 is copyleft, so a consumer reading the `LICENSE` file rather than the manifest would have concluded this package imposed obligations the rest of the family does not.
+---
 
-Corrected in `0.3.0`. `0.2.0` and earlier ship the GPL file and cannot be amended in place — upgrade rather than relying on the licence text in an older tarball.
+<div align="center">
+
+**Powered by [BeyondNetCode](https://beyondnet.info/)**
+
+[Website](https://beyondnet.info/) · [GitHub](https://github.com/beyondnetcode) · [NestJS Latam](https://nestjslatam.dev/)
+
+</div>

@@ -1,9 +1,33 @@
 import { Injectable } from '@nestjs/common';
 
-import { Artifact, artifact } from '../generation/artifact.model';
+import { Artifact, ArtifactKind, artifact } from '../generation/artifact.model';
 import { fileStem, toCamelCase } from '../generation/naming';
 import { LibraryIntrospectorService } from '../library/library-introspector.service';
 import { MemberInfo, StereotypeSymbol } from '../library/stereotype.model';
+
+/**
+ * What `extend` is actually producing, for the write preview.
+ *
+ * Every subclass used to be labelled `aggregate`, whatever its base, so
+ * `ddd extend StringValueObject Sku` announced it was writing an aggregate.
+ * The label is the only description a user gets before confirming a write,
+ * so a wrong one is worse than a vague one.
+ *
+ * The base is matched by what it inherits rather than by name, because the
+ * whole point of `extend` is that it works for bases it has never seen --
+ * including ones a user added to their own fork of the library.
+ */
+function artifactKindFor(base: StereotypeSymbol): ArtifactKind {
+  const lineage = [base.name, base.extends ?? ''].join(' ');
+
+  if (/ValueObject/.test(lineage)) return 'value-object';
+  if (/Validator/.test(lineage)) return 'validator';
+  if (/(DomainEvent|InfrastructureEvent)/.test(lineage)) return 'domain-event';
+  if (/AggregateRoot/.test(lineage)) return 'aggregate';
+  if (/Repository/.test(lineage)) return 'repository';
+
+  return 'subclass';
+}
 
 export interface ExtendRequest {
   /** The library base to subclass. */
@@ -69,7 +93,11 @@ export class ScaffoldService {
     const path = `${request.directory}/${stem}.ts`.replace(/^\/+/, '');
 
     return [
-      artifact('aggregate', path, this.renderSubclass(base, request.name)),
+      artifact(
+        artifactKindFor(base),
+        path,
+        this.renderSubclass(base, request.name),
+      ),
     ];
   }
 
