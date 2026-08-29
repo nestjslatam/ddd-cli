@@ -1,6 +1,7 @@
 import * as ts from 'typescript';
 
 import {
+  IdiomRule,
   factoryChecksValidity,
   handlerCommitsEvents,
   noSubclassStateInAddValidators,
@@ -8,12 +9,14 @@ import {
 } from './idiom-rules';
 
 const analyse = (
-  rule: (c: { source: ts.SourceFile; file: string }) => unknown[],
+  rule: IdiomRule,
   code: string,
+  aggregateIsValidShape: 'getter' | 'method' = 'getter',
 ) =>
   rule({
     source: ts.createSourceFile('t.ts', code, ts.ScriptTarget.ES2022, true),
     file: 't.ts',
+    aggregateIsValidShape,
   });
 
 describe('idiom rules', () => {
@@ -133,43 +136,70 @@ describe('idiom rules', () => {
     });
   });
 
-  describe('factory-checks-validity: the two isValid shapes', () => {
-    // DddAggregateRoot declares `isValid(): boolean`; DddValueObject declares
-    // `get isValid(): boolean`. The rule used to accept any body containing
-    // the substring, which is why generated aggregates shipped with a guard
-    // that could never fire.
-    it('flags an aggregate factory that reads isValid as a property', () => {
-      const findings = analyse(
-        factoryChecksValidity,
-        `class Order extends DddAggregateRoot<Order, IProps> {
-           static create(p: IProps): Order {
-             const o = new Order(p);
-             if (!o.isValid) throw new Error('bad');
-             return o;
-           }
-         }`,
-      );
+  describe('factory-checks-validity: the shape the installed library declares', () => {
+    // ddd-lib 2.x declared isValid as a method on DddAggregateRoot and a
+    // getter on DddValueObject; 3.0.0 unified both on a getter. The CLI
+    // audits whatever version the project has, so the rule reads the
+    // installed declaration rather than assuming one.
+    const AGGREGATE_READS = `class Order extends DddAggregateRoot<Order, IProps> {
+         static create(p: IProps): Order {
+           const o = new Order(p);
+           if (!o.isValid) throw new Error('bad');
+           return o;
+         }
+       }`;
 
-      expect(findings).toHaveLength(1);
-      expect(JSON.stringify(findings)).toContain('method on DddAggregateRoot');
-    });
+    const AGGREGATE_CALLS = `class Order extends DddAggregateRoot<Order, IProps> {
+         static create(p: IProps): Order {
+           const o = new Order(p);
+           if (!o.isValid()) throw new Error('bad');
+           return o;
+         }
+       }`;
 
-    it('accepts an aggregate factory that calls it', () => {
-      expect(
-        analyse(
+    describe('against a library that declares a getter (3.x)', () => {
+      it('accepts an aggregate factory that reads it', () => {
+        expect(
+          analyse(factoryChecksValidity, AGGREGATE_READS, 'getter'),
+        ).toHaveLength(0);
+      });
+
+      it('flags an aggregate factory that calls it', () => {
+        const findings = analyse(
           factoryChecksValidity,
-          `class Order extends DddAggregateRoot<Order, IProps> {
-             static create(p: IProps): Order {
-               const o = new Order(p);
-               if (!o.isValid()) throw new Error('bad');
-               return o;
-             }
-           }`,
-        ),
-      ).toHaveLength(0);
+          AGGREGATE_CALLS,
+          'getter',
+        );
+
+        expect(findings).toHaveLength(1);
+        expect(JSON.stringify(findings)).toContain('declares it as a getter');
+      });
     });
 
-    it('flags a value object factory that calls the getter', () => {
+    describe('against a library that declares a method (2.x)', () => {
+      it('flags an aggregate factory that reads it', () => {
+        // The silent one: reading a method tests a Function, always truthy,
+        // so the guard never fires.
+        const findings = analyse(
+          factoryChecksValidity,
+          AGGREGATE_READS,
+          'method',
+        );
+
+        expect(findings).toHaveLength(1);
+        expect(JSON.stringify(findings)).toContain('declares it as a method');
+      });
+
+      it('accepts an aggregate factory that calls it', () => {
+        expect(
+          analyse(factoryChecksValidity, AGGREGATE_CALLS, 'method'),
+        ).toHaveLength(0);
+      });
+    });
+
+    it('always expects a getter on a value object', () => {
+      // DddValueObject declared a getter in every version, so this does not
+      // depend on which library is installed.
       const findings = analyse(
         factoryChecksValidity,
         `class Money extends NumberValueObject {
@@ -179,10 +209,11 @@ describe('idiom rules', () => {
              return m;
            }
          }`,
+        'method',
       );
 
       expect(findings).toHaveLength(1);
-      expect(JSON.stringify(findings)).toContain('getter on DddValueObject');
+      expect(JSON.stringify(findings)).toContain('declares it as a getter');
     });
   });
 

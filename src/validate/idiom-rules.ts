@@ -6,6 +6,17 @@ export interface RuleContext {
   source: ts.SourceFile;
   /** Path shown in output, relative to the project root. */
   file: string;
+  /**
+   * How the installed @nestjslatam/ddd-lib declares `isValid` on
+   * DddAggregateRoot.
+   *
+   * 2.x declared a method on the aggregate and a getter on the value object,
+   * so the two disagreed. 3.0.0 unified on a getter. The rule reads the
+   * installed declaration rather than assuming, because this CLI audits
+   * whatever version the project has -- asserting one shape would produce a
+   * wrong diagnosis for everyone on the other.
+   */
+  aggregateIsValidShape: 'getter' | 'method';
 }
 
 export type IdiomRule = (context: RuleContext) => Finding[];
@@ -179,7 +190,11 @@ export const noSubclassStateInAddValidators: IdiomRule = ({ source, file }) => {
  * only constructs hands back an invalid object that looks fine until something
  * downstream trusts it.
  */
-export const factoryChecksValidity: IdiomRule = ({ source, file }) => {
+export const factoryChecksValidity: IdiomRule = ({
+  source,
+  file,
+  aggregateIsValidShape,
+}) => {
   const findings: Finding[] = [];
 
   walk(source, (node) => {
@@ -208,39 +223,39 @@ export const factoryChecksValidity: IdiomRule = ({ source, file }) => {
         continue;
       }
 
-      // The two bases disagree on the shape of the same member:
-      // DddAggregateRoot declares `isValid(): boolean`, DddValueObject
-      // declares `get isValid(): boolean`. Reading the method as a property
-      // tests a function -- always truthy -- so the guard never fires. A
-      // substring check for "isValid" passes both forms, which is exactly how
-      // this shipped in generated aggregates unnoticed.
+      // Reading a method as a property tests a Function -- always truthy --
+      // so the guard never fires. Calling a getter throws. Which mistake is
+      // possible depends on how the installed library declares it.
       const callsIt = /\bisValid\s*\(/.test(body);
       const readsIt = /\bisValid\b/.test(body) && !callsIt;
 
-      if (isAggregate && readsIt) {
+      const wanted = isAggregate ? aggregateIsValidShape : 'getter';
+
+      if (wanted === 'getter' && callsIt) {
         findings.push({
           rule: 'factory-checks-validity',
           severity: 'error',
           file,
           line: lineOf(source, member),
-          message: `${owner}.create() reads isValid as a property, but it is a method on DddAggregateRoot`,
+          message: `${owner}.create() calls isValid(), but the installed library declares it as a getter`,
           detail:
-            'The expression tests a function rather than a boolean, so it is ' +
-            'always truthy and the guard never fires. Call it: isValid().',
+            'Calling a boolean getter throws "isValid is not a function". ' +
+            'Read it as a property: isValid. ddd-lib 3.0.0 unified both bases ' +
+            'on a getter; before that, aggregates declared a method.',
         });
         continue;
       }
 
-      if (!isAggregate && callsIt) {
+      if (wanted === 'method' && readsIt) {
         findings.push({
           rule: 'factory-checks-validity',
           severity: 'error',
           file,
           line: lineOf(source, member),
-          message: `${owner}.create() calls isValid(), but it is a getter on DddValueObject`,
+          message: `${owner}.create() reads isValid as a property, but the installed library declares it as a method`,
           detail:
-            'Calling a boolean getter throws "isValid is not a function" at ' +
-            'runtime. Read it as a property: isValid.',
+            'The expression tests a function rather than a boolean, so it is ' +
+            'always truthy and the guard never fires. Call it: isValid().',
         });
         continue;
       }
