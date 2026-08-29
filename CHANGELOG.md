@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.3.0 (2026-08-28)
+
+Published as `@nestjslatam/ddd-cli@0.3.0`.
+
+A minor rather than a patch, deliberately. The bundled `ddd-lib` fallback moves across a major version, so `ddd list` and `ddd describe` return **different answers to the same command** for anyone running the CLI outside a project — `isValid` is now reported as a getter. A changed answer to unchanged input is not a patch.
 
 ### The licence is MIT
 

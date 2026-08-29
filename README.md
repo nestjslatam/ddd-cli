@@ -5,7 +5,7 @@ A command-line tool for `@nestjslatam/ddd-lib`: inventory its stereotypes, scaff
 [![npm](https://img.shields.io/npm/v/%40nestjslatam%2Fddd-cli.svg)](https://www.npmjs.com/package/@nestjslatam/ddd-cli) [![CI](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml)
 
 > [!WARNING]
-> **Pre-1.0.** `0.2.0` is under active development; the surface can change in any minor release, so pin an exact version.
+> **Pre-1.0.** `0.3.0` is under active development; the surface can change in any minor release, so pin an exact version.
 
 ```bash
 npm install -g @nestjslatam/ddd-cli
@@ -176,4 +176,4 @@ MIT — [`LICENSE`](LICENSE) and `package.json` now agree, as does the copy ship
 
 They did not until this was settled. `package.json` had always declared `MIT`, but the `LICENSE` beside it was the GNU General Public License v3 — unmodified boilerplate, with the copyright holder never filled in, which is what a template default looks like rather than a decision. The two shipped together in the same tarball, and GPL-3.0 is copyleft, so a consumer reading the `LICENSE` file rather than the manifest would have concluded this package imposed obligations the rest of the family does not.
 
-**`0.2.0`, the version currently on npm, still ships the GPL file.** A published tarball cannot be amended in place; the correction reaches consumers with the next release.
+Corrected in `0.3.0`. `0.2.0` and earlier ship the GPL file and cannot be amended in place — upgrade rather than relying on the licence text in an older tarball.
