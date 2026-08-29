@@ -185,7 +185,7 @@ Because CI has no agent. `ddd validate` in a pipeline is the reason the standalo
 <details>
 <summary><b>Does <code>ddd list</code> report my <code>ddd-lib</code> version, or a table baked into the CLI?</b></summary>
 
-Yours. It resolves `@nestjslatam/ddd-lib` from your project and parses its `.d.ts` with the TypeScript compiler API. Outside a project it falls back to its own bundled copy — `3.0.0` as of `0.3.0`.
+Yours. It resolves `@nestjslatam/ddd-lib` from your project and parses its `.d.ts` with the TypeScript compiler API. Outside a project it falls back to its own bundled copy — `4.0.0` as of `0.4.0`.
 </details>
 
 <details>
@@ -197,7 +197,11 @@ For a value object, honestly not much — it is twenty lines. The value is in th
 <details>
 <summary><b>Is <code>0.3.0</code> production-ready? What will bite me?</b></summary>
 
-It is pre-1.0 and the surface can move in any minor release, so pin an exact version. Known rough edges: `ddd generate:aggregate` is the only command whose output is not deterministic, and the scaffold writes into a layout inferred from `nest-cli.json` — check the preview before confirming if your project is laid out unusually.
+The CLI is pre-1.0 and its surface can move in any minor release, so pin an exact version.
+
+The library it reads is a separate question: `@nestjslatam/ddd-lib@4.0.0` is the first release with tests on the classes you extend — 1017 of them, 98.6% coverage — and reaching that surfaced 34 defects. Its remaining risk is API churn rather than correctness. `ddd validate` is the tool for exactly that: it reads how _your_ installed version declares things and reports call sites that no longer match.
+
+Known rough edges in the CLI itself: `ddd generate:aggregate` is the only command whose output is not deterministic, and the scaffold writes into a layout inferred from `nest-cli.json` — check the preview before confirming if your project is laid out unusually.
 </details>
 
 <details>

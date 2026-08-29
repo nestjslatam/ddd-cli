@@ -71,7 +71,7 @@ jobs:
           SMOKE="$(mktemp -d)"
           cd "$SMOKE"
           npm init -y >/dev/null
-          npm install "$TARBALL" @nestjslatam/ddd-lib@^3.0.0
+          npm install "$TARBALL" @nestjslatam/ddd-lib@^4.0.0
 
           ./node_modules/.bin/ddd --help
           ./node_modules/.bin/ddd list --role extend

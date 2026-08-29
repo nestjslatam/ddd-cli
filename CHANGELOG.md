@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.0 (2026-08-29)
+
+### Tracks `@nestjslatam/ddd-lib` 4.0.0
+
+A minor for the same reason `0.3.0` was: the bundled fallback moves across a major, so `ddd list` and `ddd describe` return different answers to the same command for anyone running the CLI outside a project.
+
+`4.0.0` is the first release of the library with tests on the classes people extend — 1017 of them, 98.6% coverage — and reaching that surfaced 34 defects, eight severe. Eight of the fixes change observable behaviour that the compiler does not catch, which makes `ddd validate` more useful than it has been: it reads how _your_ installed version declares things rather than assuming.
+
+Verified against the real thing: 81 unit tests and all 51 runnable acceptance scenarios pass with `4.0.0` installed, including the robot's own fixture, which now provisions `4.0.0` by default.
+
 ## 0.3.0 (2026-08-28)
 
 Published as `@nestjslatam/ddd-cli@0.3.0`.
