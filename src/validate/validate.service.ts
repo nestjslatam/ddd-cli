@@ -30,7 +30,11 @@ export class ValidateService {
     try {
       const aggregate = this.library.find('DddAggregateRoot');
       const member = aggregate?.members.find((m) => m.name === 'isValid');
-      return member && /\bisValid\s*\(/.test(member.signature)
+
+      // A getter's declaration reads `get isValid(): boolean`, so matching on
+      // `isValid(` alone reports every getter as a method -- the parentheses
+      // are there either way. The `get` keyword is the only signal.
+      return member && !/\bget\s+isValid\b/.test(member.signature)
         ? 'method'
         : 'getter';
     } catch {

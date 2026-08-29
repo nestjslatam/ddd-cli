@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Tracks `@nestjslatam/ddd-lib` 3.0.0
+
+The declared dependency moves from `^2.1.2` to `^3.0.0`, and with it the robot's default fixture version and the CI smoke install.
+
+This matters beyond keeping current. The CLI reads the `ddd-lib` installed in your project and falls back to its own copy when there is none, so a stale bundled version would have shown anyone exploring the library standalone the **old `isValid` shape** — the very thing 3.0.0 unified.
+
+### Fixed
+
+Installing 3.0.0 immediately exposed a defect in the shape detection shipped alongside it. It read the declaration as:
+
+```ts
+/\bisValid\s*\(/.test(signature) ? 'method' : 'getter';
+```
+
+But a getter is emitted as `get isValid(): boolean` — that regex matches it too, because the parentheses are there either way. Every getter was reported as a method, which **inverted the diagnosis**: the rule then expected `isValid()` and stayed silent on exactly the call site it exists to catch. The `get` keyword is the only signal, and it is what the check looks for now.
+
+Verified by running the built binary against a project with each version installed:
+
+| Installed        | Code                | Reported                                                                             |
+| ---------------- | ------------------- | ------------------------------------------------------------------------------------ |
+| `3.0.0` (getter) | `if (!o.isValid())` | calls `isValid()`, but the installed library declares it as a **getter**             |
+| `2.1.2` (method) | `if (!o.isValid)`   | reads `isValid` as a property, but the installed library declares it as a **method** |
+
+Three unit tests pin the detection against both declaration forms and the no-library-installed fallback, so it cannot silently invert again. 73 tests, 51 robot scenarios.
+
 ## 0.2.0 (2026-08-28)
 
 ### Use it from the agent you already have
