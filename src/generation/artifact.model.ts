@@ -16,7 +16,9 @@ export type ArtifactKind =
   | 'command-handler'
   | 'repository'
   | 'module'
-  | 'barrel';
+  | 'barrel'
+  /** A subclass of a base the generator has no more specific name for. */
+  | 'subclass';
 
 export function artifact(
   kind: ArtifactKind,
