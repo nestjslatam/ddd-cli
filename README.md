@@ -2,15 +2,17 @@
 
 # `@nestjslatam/ddd-cli`
 
-**Understand, scaffold and audit [`@nestjslatam/ddd-lib`](https://github.com/nestjslatam/ddd) — from your terminal, or from the AI agent you already use.**
+**Entiende, andamia y audita [`@nestjslatam/ddd-lib`](https://github.com/nestjslatam/ddd) — desde tu terminal, o desde el agente de IA que ya usas.**
 
 [![npm](https://img.shields.io/npm/v/%40nestjslatam%2Fddd-cli?color=1e73be&label=ddd-cli)](https://www.npmjs.com/package/@nestjslatam/ddd-cli)
 [![CI](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/nestjslatam/ddd-cli/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-80%20unit%20%2B%2051%20acceptance-00d084)](#tests-and-the-robot)
-[![no api key](https://img.shields.io/badge/API%20key-not%20required-00d084)](#driving-it-from-an-ai-agent)
-[![license](https://img.shields.io/badge/license-MIT-575760)](LICENSE)
+[![tests](https://img.shields.io/badge/pruebas-80%20unitarias%20%2B%2053%20aceptación-00d084)](#las-pruebas-y-el-robot)
+[![sin clave](https://img.shields.io/badge/clave%20de%20API-no%20hace%20falta-00d084)](#usarlo-desde-un-agente-de-ia)
+[![license](https://img.shields.io/badge/licencia-MIT-575760)](LICENSE)
 
-[**Full guide**](docs/GUIDE.md) · [Why](#why) · [Commands](#commands) · [MCP](#driving-it-from-an-ai-agent) · [FAQ](#faq) · [Contributing](#contributing)
+[**Guía completa**](docs/GUIDE.md) · [Por qué](#por-qué) · [Comandos](#comandos) · [MCP](#usarlo-desde-un-agente-de-ia) · [Preguntas frecuentes](#preguntas-frecuentes) · [Colaborar](#colaborar)
+
+**[📖 Documentación en docs.nestjslatam.dev](https://docs.nestjslatam.dev/cli/)**
 
 </div>
 
@@ -21,21 +23,21 @@ npm install -D @nestjslatam/ddd-cli
 ```
 
 > [!TIP]
-> **[Read the full guide →](docs/GUIDE.md)** — every command and flag, walked through by building the cargo-shipping domain from nothing into ten type-checking files. Every line of output on that page was produced by running the CLI, not written from memory.
+> **[Lee la guía completa →](docs/GUIDE.md)** — cada comando y cada opción, recorridos construyendo el dominio de transporte marítimo desde cero hasta diez ficheros que compilan. Cada línea de salida de esa página se produjo ejecutando el CLI, no se escribió de memoria.
 
-## Why
+## Por qué
 
-Most scaffolding CLIs hardcode a template and hope it still matches the library. This one **reads the `.d.ts` files of the `ddd-lib` installed in your project** with the TypeScript compiler API. Ask it about `DddAggregateRoot` and it describes _your_ version — including a version it has never seen, and including a base you added to your own fork.
+La mayoría de los CLI de andamiaje llevan una plantilla fija y confían en que siga cuadrando con la librería. Éste **lee los ficheros `.d.ts` del `ddd-lib` instalado en tu proyecto** con la API del compilador de TypeScript. Pregúntale por `DddAggregateRoot` y te describe **tu** versión — incluida una versión que nunca ha visto, y una base que hayas añadido tú en tu propio fork.
 
 ```bash
 npx ddd list
 ```
 
 ```
-  extend     subclass it
-  implement  satisfy the interface
-  compose    the aggregate delegates to it
-  use        call it directly
+  extend     hereda de ella
+  implement  cumple la interfaz
+  compose    el agregado delega en ella
+  use        se llama directamente
 
   Aggregates
   compose    AggregateValidationOrchestrator
@@ -46,26 +48,26 @@ npx ddd list
   extend     IdValueObject             extends DddValueObject
   extend     NumberValueObject         extends DddValueObject
   …
-  66 symbols · ddd explain <name> for any of them
+  66 símbolos · ddd explain <nombre> para cualquiera de ellos
 ```
 
-That four-way split is most of what there is to understand about the design. `compose` is the one people get wrong: `BrokenRulesManager`, `ValidatorRuleManager` and `TrackingStateManager` are collaborators an aggregate _holds_, not bases you subclass.
+Esa división en cuatro es casi todo lo que hay que entender del diseño. `compose` es la que más se confunde: `BrokenRulesManager`, `ValidatorRuleManager` y `TrackingStateManager` son colaboradores que un agregado **tiene**, no bases de las que se hereda.
 
-## Commands
+## Comandos
 
-| Command                            | What it does                                                            | Uses a model? |
-| ---------------------------------- | ----------------------------------------------------------------------- | ------------- |
-| `ddd list`                         | Every stereotype, grouped, with its role                                | No            |
-| `ddd explain <name>`               | One symbol: contract, what to implement, an example                     | Optional      |
-| `ddd new <kind> <Name>`            | Scaffold a value object, validator, event, exception, aggregate or enum | No            |
-| `ddd extend <Base> <Name>`         | Subclass any base, with the abstract members stubbed                    | No            |
-| `ddd validate`                     | Audit your code against four idiom rules                                | No            |
-| `ddd generate:aggregate "<prose>"` | Model an aggregate from a description                                   | **Yes**       |
-| `ddd mcp`                          | Run as an MCP server for an AI agent                                    | No            |
+| Comando                            | Qué hace                                                                        | ¿Usa modelo? |
+| ---------------------------------- | ------------------------------------------------------------------------------- | ------------ |
+| `ddd list`                         | Cada estereotipo, agrupado, con su rol                                          | No           |
+| `ddd explain <nombre>`             | Un símbolo: contrato, qué implementar, un ejemplo                               | Opcional     |
+| `ddd new <tipo> <Nombre>`          | Andamia un value object, validador, evento, excepción, agregado o enum          | No           |
+| `ddd extend <Base> <Nombre>`       | Hereda de cualquier base, con los miembros abstractos esbozados                 | No           |
+| `ddd validate`                     | Audita tu código contra cuatro reglas del idioma                                | No           |
+| `ddd generate:aggregate "<prosa>"` | Modela un agregado a partir de una descripción                                  | **Sí**       |
+| `ddd mcp`                          | Corre como servidor MCP para un agente de IA                                    | No           |
 
-Five of the seven never touch a model.
+Cinco de los siete no tocan un modelo jamás.
 
-### Scaffolding
+### Andamiaje
 
 ```bash
 npx ddd new value-object OrderTotal --kind number
@@ -73,64 +75,64 @@ npx ddd new validator OrderTotalRules --for OrderTotal
 npx ddd extend AbstractRuleValidator ShippingRules
 ```
 
-`extend` derives the contract from the installed declarations, so it works for bases it has never seen. **Nothing is written before you see the file list and confirm** — the preview names the path and what each file is:
+`extend` deriva el contrato de las declaraciones instaladas, así que funciona con bases que nunca ha visto. **No se escribe nada antes de que veas la lista de ficheros y confirmes** — la vista previa nombra la ruta y qué es cada fichero:
 
 ```
   Sku extends StringValueObject
 
-  Files under src
+  Ficheros bajo src
   create  shared/valueobjects/sku.ts  value-object
 
-  1 new · 0 already present
-  Write this file? (y/N)
+  1 nuevo · 0 ya existentes
+  ¿Escribir este fichero? (s/N)
 ```
 
-Everything `ddd new` emits **passes `ddd validate`**. The templates are not merely plausible; they satisfy the tool's own audit.
+Todo lo que emite `ddd new` **pasa `ddd validate`**. Las plantillas no son sólo plausibles: cumplen la propia auditoría de la herramienta.
 
-Point it at something that is not a base class and it teaches rather than errors:
+Apúntalo a algo que no sea una clase base y en vez de dar error te enseña:
 
 ```
-  BrokenRulesManager is not a base class.
+  BrokenRulesManager no es una clase base.
 
-  BrokenRulesManager is a collaborator: an aggregate or value object holds
-  one and delegates to it, rather than subclassing it.
+  BrokenRulesManager es un colaborador: un agregado o un value object tiene
+  uno y delega en él, en lugar de heredar de él.
 
-  Run `ddd list --role extend` to see what can be extended.
+  Ejecuta `ddd list --role extend` para ver de qué se puede heredar.
 ```
 
-### Auditing
+### Auditoría
 
 ```bash
 npx ddd validate
 ```
 
-Four rules, each a mistake `ddd-lib` makes easy and silent:
+Cuatro reglas, cada una un error que `ddd-lib` hace fácil y silencioso:
 
-| Rule                                  | Catches                                                                                                                 |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `no-subclass-state-in-add-validators` | Reading a subclass field inside `addValidators()`, which the base constructor calls _before_ your constructor body runs |
-| `super-add-validators`                | An override that does not chain, dropping the base's real validators                                                    |
-| `factory-checks-validity`             | A `create()` that never checks `isValid`, so invalid objects escape                                                     |
-| `handler-commits-events`              | A handler without `mergeObjectContext(...).commit()`, so no event is ever dispatched                                    |
+| Regla                                 | Atrapa                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `no-subclass-state-in-add-validators` | Leer un campo de la subclase dentro de `addValidators()`, que el constructor base llama **antes** de que corra el cuerpo del tuyo |
+| `super-add-validators`                | Un override que no encadena, y tira los validadores reales de la base                                                          |
+| `factory-checks-validity`             | Un `create()` que nunca comprueba `isValid`, así que los objetos inválidos se escapan                                          |
+| `handler-commits-events`              | Un handler sin `mergeObjectContext(...).commit()`, así que no se despacha ningún evento                                        |
 
-The first is not hypothetical: it is exactly how `NumberValueObject` shipped broken through two releases of the library.
+La primera no es hipotética: es exactamente cómo `NumberValueObject` se publicó roto durante dos versiones de la librería.
 
-`validate` also reports **`isValid` call sites that do not match your installed version** — a getter since `ddd-lib` 3.0.0. That is the mechanical part of the 2.x → 3.0.0 migration:
+`validate` también señala **las llamadas a `isValid` que no cuadran con tu versión instalada** — es un getter desde `ddd-lib` 3.0.0. Ésa es la parte mecánica de la migración 2.x → 3.0.0:
 
 ```
-error  3  Order.create() calls isValid(), but the installed library declares it as a getter
+error  3  Order.create() llama a isValid(), pero la librería instalada lo declara como getter
 ```
 
-## Driving it from an AI agent
+## Usarlo desde un agente de IA
 
-If you already work in Claude Code, Codex or Cursor, that agent has a model and credentials. The CLI does not need its own.
+Si ya trabajas en Claude Code, Codex o Cursor, ese agente tiene modelo y credenciales. El CLI no necesita los suyos.
 
 ```bash
 claude mcp add ddd -- npx -y @nestjslatam/ddd-cli mcp
 ```
 
 ```jsonc
-// any other MCP client
+// cualquier otro cliente MCP
 {
   "mcpServers": {
     "ddd": { "command": "npx", "args": ["-y", "@nestjslatam/ddd-cli", "mcp"] },
@@ -138,121 +140,121 @@ claude mcp add ddd -- npx -y @nestjslatam/ddd-cli mcp
 }
 ```
 
-Seven tools, **no API key**: `ddd_list`, `ddd_describe`, `ddd_new`, `ddd_extend`, `ddd_validate`, `ddd_aggregate_schema`, `ddd_render_aggregate`.
+Siete herramientas, **sin clave de API**: `ddd_list`, `ddd_describe`, `ddd_new`, `ddd_extend`, `ddd_validate`, `ddd_aggregate_schema`, `ddd_render_aggregate`.
 
-The division of labour is the point. **The agent decides** the aggregate boundary, the invariants, the naming — judgement. **The CLI does** what a model is bad at: reading the installed declarations exactly, rendering deterministically, and auditing against the idiom. `ddd_describe` returns facts rather than prose on purpose; the agent writes the explanation, which is what it is for.
+El reparto de trabajo es lo importante. **El agente decide** la frontera del agregado, las invariantes, los nombres — criterio. **El CLI hace** lo que un modelo hace mal: leer las declaraciones instaladas con exactitud, renderizar de forma determinista y auditar contra el idioma. `ddd_describe` devuelve hechos y no prosa a propósito; la explicación la escribe el agente, que para eso está.
 
-`ddd_aggregate_schema` and `ddd_render_aggregate` make the split explicit: the agent produces a specification, the CLI renders it, and a spec that fails the schema comes back with per-field issues so the agent corrects itself without a human in the loop.
+`ddd_aggregate_schema` y `ddd_render_aggregate` hacen el reparto explícito: el agente produce una especificación, el CLI la renderiza, y una especificación que no cumple el esquema vuelve con los problemas campo por campo, así que el agente se corrige solo sin que haya nadie mirando.
 
-Nothing reaches disk unless a call passes `write: true`, and even then existing files are never overwritten — an agent acting unattended must not clobber hand-edited domain code.
+Nada llega al disco salvo que una llamada pase `write: true`, y aun así jamás se sobrescribe un fichero existente — un agente actuando sin supervisión no debe pisar código de dominio escrito a mano.
 
-## Tests and the robot
+## Las pruebas y el robot
 
 ```bash
-npm test        # 80 unit tests, 8 suites
-npm run robot   # 53 acceptance scenarios
+npm test        # 80 pruebas unitarias, 8 suites
+npm run robot   # 53 escenarios de aceptación
 ```
 
-The **acceptance robot** is what makes the claims above checkable. It builds a throwaway NestJS project, installs a real `@nestjslatam/ddd-lib` into it, and drives the _built binary as a subprocess_ across every command, flag and error path — then **type-checks the generated code** with `tsc`. Twelve of its scenarios speak MCP over stdio the way a real client does, including an assertion that nothing outside the protocol reaches stdout: MCP is JSON-RPC on that stream, and one stray log line makes a client drop the connection.
+El **robot de aceptación** es lo que hace comprobables las afirmaciones de arriba. Construye un proyecto NestJS desechable, le instala un `@nestjslatam/ddd-lib` real y conduce el **binario compilado como subproceso** por cada comando, opción y camino de error — y después **comprueba los tipos del código generado** con `tsc`. Doce de sus escenarios hablan MCP sobre stdio como lo haría un cliente real, incluida una comprobación de que nada fuera del protocolo llega a stdout: MCP es JSON-RPC sobre ese flujo, y una sola línea de log perdida hace que un cliente corte la conexión.
 
-Unit tests never caught the two worst bugs this project has had. The robot did:
+Las pruebas unitarias nunca cazaron los dos peores bugs que ha tenido este proyecto. El robot sí:
 
-- generated mutate handlers referenced an unbound `id`, so every non-create handler failed `tsc`
-- the event template redeclared `aggregateId`, a `TS2610` no unit test was looking for
+- los handlers de mutación generados referenciaban un `id` sin enlazar, así que todo handler que no fuera de creación fallaba en `tsc`
+- la plantilla de eventos redeclaraba `aggregateId`, un `TS2610` que ninguna prueba unitaria estaba buscando
 
-CI additionally packs the real tarball and installs it into a clean project to prove the published artifact runs — including asserting the `ddd` binary actually got installed.
+CI además empaqueta el tarball real y lo instala en un proyecto limpio para demostrar que el artefacto publicado funciona — incluida la comprobación de que el binario `ddd` se instaló de verdad.
 
-## FAQ
+## Preguntas frecuentes
 
 <details>
-<summary><b>Do I need an Anthropic or OpenAI API key?</b></summary>
+<summary><b>¿Necesito una clave de API de Anthropic o de OpenAI?</b></summary>
 
-**No**, for everything except `ddd generate:aggregate` and `ddd explain --with-model`. `list`, `new`, `extend`, `validate` and `mcp` never contact a model. And over MCP even the modelling is done by _your agent's_ model, so a key is never needed there either.
+**No**, para todo salvo `ddd generate:aggregate` y `ddd explain --with-model`. `list`, `new`, `extend`, `validate` y `mcp` no contactan con ningún modelo. Y por MCP incluso el modelado lo hace el modelo de **tu agente**, así que ahí tampoco hace falta clave nunca.
 </details>
 
 <details>
-<summary><b>Four <code>@nestjslatam</code> packages — which do I install?</b></summary>
+<summary><b>Cuatro paquetes <code>@nestjslatam</code>, ¿cuál instalo?</b></summary>
 
-[`ddd-lib`](https://github.com/nestjslatam/ddd) is the library and the only runtime dependency you need. This CLI is a **dev** dependency. [`ddd-valueobjects`](https://github.com/nestjslatam/ddd-valueobjects) and [`ddd-es-lib`](https://github.com/nestjslatam/ddd-event-sourcing) are optional add-ons.
+[`ddd-lib`](https://github.com/nestjslatam/ddd) es la librería y la única dependencia de ejecución que necesitas. Este CLI es dependencia **de desarrollo**. [`ddd-valueobjects`](https://github.com/nestjslatam/ddd-valueobjects) y [`ddd-es-lib`](https://github.com/nestjslatam/ddd-event-sourcing) son complementos opcionales.
 </details>
 
 <details>
-<summary><b>If it runs as an MCP server, why is there still a standalone CLI?</b></summary>
+<summary><b>Si corre como servidor MCP, ¿para qué sigue habiendo un CLI suelto?</b></summary>
 
-Because CI has no agent. `ddd validate` in a pipeline is the reason the standalone binary exists, and it is the mode with no model in the loop at all — deterministic, exit-code driven.
+Porque en CI no hay agente. `ddd validate` en un pipeline es la razón de que exista el binario suelto, y es el modo sin ningún modelo de por medio — determinista y guiado por código de salida.
 </details>
 
 <details>
-<summary><b>Does <code>ddd list</code> report my <code>ddd-lib</code> version, or a table baked into the CLI?</b></summary>
+<summary><b>¿<code>ddd list</code> informa de mi versión de <code>ddd-lib</code>, o de una tabla incrustada en el CLI?</b></summary>
 
-Yours. It resolves `@nestjslatam/ddd-lib` from your project and parses its `.d.ts` with the TypeScript compiler API. Outside a project it falls back to its own bundled copy — `4.0.0` as of `0.4.0`.
+De la tuya. Resuelve `@nestjslatam/ddd-lib` desde tu proyecto y parsea sus `.d.ts` con la API del compilador de TypeScript. Fuera de un proyecto recurre a su propia copia incluida — la `4.0.0` a fecha de la `0.4.0`.
 </details>
 
 <details>
-<summary><b>What does this give me over writing the class myself?</b></summary>
+<summary><b>¿Qué me aporta frente a escribir yo la clase?</b></summary>
 
-For a value object, honestly not much — it is twenty lines. The value is in the parts that are easy to get _silently_ wrong: `extend` stubs the exact abstract members your installed version declares, and `validate` catches four mistakes that produce no error at all, just objects that quietly skip their own invariants.
+Para un value object, sinceramente poco — son veinte líneas. El valor está en las partes que es fácil equivocar **en silencio**: `extend` esboza exactamente los miembros abstractos que declara tu versión instalada, y `validate` atrapa cuatro errores que no producen ningún fallo visible, sólo objetos que se saltan calladamente sus propias invariantes.
 </details>
 
 <details>
-<summary><b>Is <code>0.3.0</code> production-ready? What will bite me?</b></summary>
+<summary><b>¿La <code>0.4.0</code> está lista para producción? ¿Qué me va a morder?</b></summary>
 
-The CLI is pre-1.0 and its surface can move in any minor release, so pin an exact version.
+El CLI es anterior a la 1.0 y su superficie puede moverse en cualquier versión menor, así que clava una versión exacta.
 
-The library it reads is a separate question: `@nestjslatam/ddd-lib@4.0.0` is the first release with tests on the classes you extend — 1017 of them, 98.6% coverage — and reaching that surfaced 34 defects. Its remaining risk is API churn rather than correctness. `ddd validate` is the tool for exactly that: it reads how _your_ installed version declares things and reports call sites that no longer match.
+La librería que lee es otra cuestión: `@nestjslatam/ddd-lib@4.0.0` es la primera versión con pruebas sobre las clases que extiendes — 1017 de ellas, 98,6 % de cobertura — y llegar ahí destapó 34 defectos. Su riesgo restante es cambio de API, no corrección. `ddd validate` es la herramienta para exactamente eso: lee cómo declara las cosas **tu** versión instalada y señala las llamadas que ya no cuadran.
 
-Known rough edges in the CLI itself: `ddd generate:aggregate` is the only command whose output is not deterministic, and the scaffold writes into a layout inferred from `nest-cli.json` — check the preview before confirming if your project is laid out unusually.
+Asperezas conocidas del propio CLI: `ddd generate:aggregate` es el único comando cuya salida no es determinista, y el andamiaje escribe en una estructura inferida de `nest-cli.json` — revisa la vista previa antes de confirmar si tu proyecto está organizado de forma poco habitual.
 </details>
 
 <details>
-<summary><b>Will it work with my Node and NestJS version?</b></summary>
+<summary><b>¿Funcionará con mi versión de Node y de NestJS?</b></summary>
 
-Node `>=20.11`; CI runs 20.x and 22.x. It is a dev tool, so it does not constrain your app's NestJS version — but `list`, `explain` and `extend` read the `ddd-lib` you have installed, and `ddd-lib` itself declares NestJS `^10 || ^11`.
+Node `>=20.11`; CI ejecuta 20.x y 22.x. Es una herramienta de desarrollo, así que no restringe la versión de NestJS de tu aplicación — pero `list`, `explain` y `extend` leen el `ddd-lib` que tengas instalado, y `ddd-lib` declara NestJS `^10 || ^11`.
 </details>
 
-## Contributing
+## Colaborar
 
-Concrete work, verifiable in minutes:
+Trabajo concreto, verificable en minutos:
 
-1. **More `validate` rules.** The four are in [`src/validate/idiom-rules.ts`](src/validate/idiom-rules.ts); each is a small AST predicate with a test beside it. The library has more silent footguns than four.
-2. **More `new` stereotypes.** [`src/scaffold/stereotype.renderer.ts`](src/scaffold/stereotype.renderer.ts) — repositories, sagas and command handlers are not covered.
-3. **Robot scenarios for the gaps.** Two of the 53 are skipped because they need a live model; anything else missing is a gap worth filling.
+1. **Más reglas de `validate`.** Las cuatro están en [`src/validate/idiom-rules.ts`](src/validate/idiom-rules.ts); cada una es un pequeño predicado sobre el AST con su prueba al lado. La librería tiene más trampas silenciosas que cuatro.
+2. **Más estereotipos de `new`.** [`src/scaffold/stereotype.renderer.ts`](src/scaffold/stereotype.renderer.ts) — repositorios, sagas y command handlers no están cubiertos.
+3. **Escenarios del robot para los huecos.** Dos de los 53 se saltan porque necesitan un modelo en vivo; cualquier otra cosa que falte es un hueco que merece la pena llenar.
 
-Before opening a PR:
+Antes de abrir un PR:
 
 ```bash
 npm run lint && npm run type-check && npm test && npm run robot
 ```
 
-CI runs all of it on Node 20 and 22, plus a tarball install check. Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
+CI lo ejecuta todo en Node 20 y 22, más una comprobación de instalación del tarball. Los commits siguen [Conventional Commits](https://www.conventionalcommits.org/).
 
-## Requirements
+## Requisitos
 
-Node `>=20.11`. Built with NestJS and [nest-commander](https://nest-commander.jaymcdoniel.dev/); the CLI is a real Nest application, so commands are injectable providers and testable as such.
+Node `>=20.11`. Construido con NestJS y [nest-commander](https://nest-commander.jaymcdoniel.dev/); el CLI es una aplicación Nest de verdad, así que los comandos son proveedores inyectables y se prueban como tales.
 
-## Who is behind this
+## Quiénes están detrás
 
-Built and maintained by **[BeyondNet Tech](https://beyondnet.info/)** with the [NestJS Latam](https://nestjslatam.dev/) community.
+Construido y mantenido por **[BeyondNet Tech](https://beyondnet.info/)** junto a la comunidad [NestJS Latam](https://nestjslatam.dev/).
 
-- **[Evolith](https://github.com/beyondnetcode/evolith_arch32)** — executable architecture governance: a CLI, MCP server and REST API that check a repository against Rego/OPA rules, and report a rule they could not evaluate as a failure rather than a silent pass. The same idea as `ddd validate`, one level up.
-- **[Shell.ddd](https://github.com/beyondnetcode/Shell.ddd)** — the .NET counterpart of `ddd-lib`.
+- **[Evolith](https://github.com/beyondnetcode/evolith_arch32)** — gobierno de arquitectura ejecutable: un CLI, un servidor MCP y una API REST que comprueban un repositorio contra reglas Rego/OPA, y que informan de una regla que no pudieron evaluar como un fallo en lugar de dejarla pasar en silencio. La misma idea que `ddd validate`, un nivel por encima.
+- **[Shell.ddd](https://github.com/beyondnetcode/Shell.ddd)** — la contraparte .NET de `ddd-lib`.
 
-## More
+## Más
 
-- [**The guide**](docs/GUIDE.md) — every command, every flag, one worked domain end to end
-- [`nestjslatam/ddd`](https://github.com/nestjslatam/ddd) — the library this tool reads
-- [CHANGELOG](CHANGELOG.md) — every release and why
+- [**La guía**](docs/GUIDE.md) — cada comando, cada opción, un dominio completo de principio a fin
+- [`nestjslatam/ddd`](https://github.com/nestjslatam/ddd) — la librería que esta herramienta lee
+- [CHANGELOG](CHANGELOG.md) — cada versión y su porqué
 
-## License
+## Licencia
 
-MIT — see [LICENSE](LICENSE). Note that `0.2.0` and earlier shipped a GPL-3.0 file by mistake; a published tarball cannot be amended in place, so upgrade rather than relying on the licence text in an older release.
+MIT — ver [LICENSE](LICENSE). Ojo: la `0.2.0` y anteriores incluían por error un fichero GPL-3.0; un tarball publicado no se puede enmendar en su sitio, así que actualiza en lugar de fiarte del texto de licencia de una versión antigua.
 
 ---
 
 <div align="center">
 
-**Powered by [BeyondNetCode](https://beyondnet.info/)**
+**Impulsado por [BeyondNetCode](https://beyondnet.info/)**
 
-[Website](https://beyondnet.info/) · [GitHub](https://github.com/beyondnetcode) · [NestJS Latam](https://nestjslatam.dev/)
+[Web](https://beyondnet.info/) · [GitHub](https://github.com/beyondnetcode) · [NestJS Latam](https://nestjslatam.dev/)
 
 </div>
